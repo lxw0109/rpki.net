@@ -910,6 +910,7 @@ class Zookeeper(object):
     grouped4 = {}
     grouped6 = {}
 
+    #lxw    csv_reader pre-process the file? remove the resources do not exist?
     for handle, prefix in csv_reader(filename, columns = 2):
       grouped = grouped6 if ":" in prefix else grouped4
       if handle not in grouped:
