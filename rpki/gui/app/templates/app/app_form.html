@@ -1,0 +1,19 @@
+{% extends "app/app_base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ form_title }}</h1>
+</div>
+
+{# allow this template to be subclassed to fill in extra information, such as warnings #}
+{% block form_info %}{% endblock form_info %}
+
+<form method="POST" action="" enctype="multipart/form-data" class="form-horizontal">
+  {% csrf_token %}
+  {% include "app/bootstrap_form.html" %}
+  <div class="form-actions">
+    <input class='btn btn-primary' type='submit' value='Save'>
+    <a class='btn' href="{{ cancel_url }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

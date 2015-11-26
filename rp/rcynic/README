@@ -1,0 +1,13 @@
+$Id: README 4424 2012-04-16 20:32:12Z sra $
+
+"Cynical rsync" -- fetch and validate RPKI certificates.
+
+This is the primary RPKI relying party validation tool.
+
+See:
+
+- The  primary documentation at http://trac.rpki.net/
+
+- The PDF manual in ../doc/manual.pdf, or
+
+- The flat text page ../doc/doc.RPKI.RP.rcynic

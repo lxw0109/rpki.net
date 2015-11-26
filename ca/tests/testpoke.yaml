@@ -1,0 +1,24 @@
+---
+# $Id: testpoke.yaml 3758 2011-04-04 15:52:43Z sra $
+
+version: 1
+posturl: http://localhost:4433/up-down/1
+recipient-id: wombat
+sender-id: "1"
+
+cms-cert-file: biz-certs/Frank-EE.cer
+cms-key-file: biz-certs/Frank-EE.key
+cms-ca-cert-file: biz-certs/Bob-Root.cer
+cms-cert-chain-file: [ biz-certs/Frank-CA.cer ]
+
+requests:
+  list:
+    type: list
+  issue:
+    type: issue
+    class: 1
+    sia: [ "rsync://bandicoot.invalid/some/where/" ]
+  revoke:
+    type: revoke
+    class: 1
+    ski: "CB5K6APY-4KcGAW9jaK_cVPXKX0"

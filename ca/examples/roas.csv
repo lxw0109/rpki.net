@@ -1,0 +1,5 @@
+# $Id: roas.csv 3283 2010-06-12 18:52:38Z sra $
+#
+# Syntax: <prefix>/<length>-<maxlength> <asn> <group>
+#
+10.3.0.44/32	666	Mom

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load url from future %}
+
+{% block content %}
+
+{% if request.user.is_superuser %}
+<div class="alert alert-info">
+There are currently no resource holders on this system.
+</div>
+<a class="btn" href="{% url "rpki.gui.app.views.resource_holder_create" %}" title="create a new resource holder"><i class="icon-plus-sign"></i> Create</a>
+{% else %}
+<div class="alert alert-error">
+Your account does not have permission to manage any resource handles on this server.  Please contact your portal-gui adminstrator.
+</div>
+{% endif %}
+
+{% endblock %}

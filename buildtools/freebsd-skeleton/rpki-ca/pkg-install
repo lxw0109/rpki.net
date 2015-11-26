@@ -1,0 +1,70 @@
+#!/bin/sh -
+
+case $2 in
+
+PRE-INSTALL)
+    ;;
+
+POST-INSTALL)
+
+    /usr/local/libexec/rpkigui-apache-conf-gen --freebsd --install --verbose
+
+    hostname=`/bin/hostname`
+    handle=`/bin/hostname | /usr/bin/sed 's/[.]/_/g'`
+    /usr/local/sbin/rpki-confgen			\
+	--read-xml /usr/local/etc/rpki/rpki-confgen.xml \
+	--autoconf					\
+	--set myrpki::handle="$handle"			\
+	--set myrpki::rpkid_server_host="$hostname"	\
+	--set myrpki::pubd_server_host="$hostname"	\
+	--pwgen myrpki::shared_sql_password		\
+	--pwgen web_portal::secret-key			\
+	--write-conf /usr/local/etc/rpki.conf.sample
+
+    if test ! -f /usr/local/etc/rpki.conf
+    then
+	/bin/cp -p /usr/local/etc/rpki.conf.sample /usr/local/etc/rpki.conf
+    fi
+
+    /usr/bin/install -o root -g wheel -d /usr/local/share/rpki/publication
+    /usr/bin/install -o www  -g www   -d /usr/local/share/rpki/python-eggs
+
+    /usr/local/sbin/rpki-sql-setup --create-if-missing
+    /usr/local/sbin/rpki-sql-setup --apply-upgrades --verbose
+    /usr/local/sbin/rpki-manage syncdb --noinput
+    /usr/local/sbin/rpki-manage migrate app
+
+    /usr/local/sbin/rpkic initialize_server_bpki
+
+    # We should be setting up crontab to run as user rpkid, but we
+    # don't have any of the rest of the code running as user rpkid yet
+    # either, so run this as root too for now.
+
+    /usr/bin/crontab -l -u root 2>/dev/null |
+    /usr/bin/awk -v t=`/usr/bin/hexdump -n 2 -e '"%u\n"' /dev/random` '
+        BEGIN {
+	    cmd["/usr/local/libexec/rpkigui-import-routes"] = sprintf("%2u */2 * * *", t % 60);
+	    cmd["/usr/local/libexec/rpkigui-check-expired"] =          "@daily      ";
+	    cmd["/usr/local/sbin/rpkic update_bpki"       ] =          "30 3 * * *  ";
+	}
+	{
+	    print;
+	    for (i in cmd)
+	        if ($0 ~ i)
+		    found[i] = $0;
+	}
+	END {
+	    for (i in cmd)
+	        if (!found[i])
+		    print cmd[i] "\texec " i;
+	}' |
+    /usr/bin/crontab -u root -
+
+    ;;
+
+*)
+    echo "No clue what this script is meant to do when invoked with arguments \"$*\".  Punting."
+    exit 1
+    ;;
+
+esac

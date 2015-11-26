@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load url from future %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Login</h1>
+</div>
+
+{% if form.errors %}
+<div class='alert'>
+  <p>Your username and password didn't match. Please try again.</p>
+</div>
+{% endif %}
+
+<form class="form-horizontal" method="post" action="{% url "rpki.gui.views.login" %}">
+  {% csrf_token %}
+  {% include "app/bootstrap_form.html" %}
+
+  <input type="hidden" name="next" value="{{ next }}" />
+  <div class="form-actions">
+    <input type="submit" value="Login" class="btn btn-primary" />
+  </div>
+</form>
+
+<a href="{% url "password_reset" %}">Forgot your password?</a>
+
+{% endblock %}

@@ -1,0 +1,80 @@
+#!/bin/sh -
+
+case $2 in
+
+DEINSTALL)
+
+    /usr/bin/crontab -l -u root 2>/dev/null |
+    /usr/bin/awk '
+        BEGIN {
+	    empty = 1;
+	}
+	$0 !~ "/usr/local/libexec/rpkigui-import-routes" &&
+	$0 !~ "/usr/local/libexec/rpkigui-check-expired" &&
+	$0 !~ "/usr/local/sbin/rpkic update_bpki" {
+	    empty = 0;
+	    print | "/usr/bin/crontab -u root -";
+	}
+	END {
+	    if (empty)
+		system("/usr/bin/crontab -u root -r");
+	}'
+
+    # Clean up BPKI files.  These are all stored in SQL anyway, no great loss.
+
+    /bin/rm -f /usr/local/share/rpki/ca.cer
+    /bin/rm -f /usr/local/share/rpki/irbe.cer
+    /bin/rm -f /usr/local/share/rpki/irdbd.cer
+    /bin/rm -f /usr/local/share/rpki/pubd.cer
+    /bin/rm -f /usr/local/share/rpki/pubd.key
+    /bin/rm -f /usr/local/share/rpki/rpkid.cer
+    /bin/rm -f /usr/local/share/rpki/rpkid.key
+
+    # Clean up unpacked Python eggs.
+
+    /bin/rm -rf /usr/local/share/rpki/python-eggs
+
+    # If we were automatically dropping SQL databases, this would be
+    # where we'd want to record what databases to drop.
+
+    # Clean up what we did to Apache.
+
+    /usr/local/libexec/rpkigui-apache-conf-gen --freebsd --remove --verbose
+
+    # This is where we'd remove rpki.conf if it were identical to
+    # rpki.conf.sample and if we didn't have to worry about things
+    # like SQL passwords.  As it is, we always leave rpki.conf for the
+    # user to delete.
+
+    if test -f /usr/local/etc/rpki.conf
+    then
+	echo "Please remove /usr/local/etc/rpki.conf manually if you're really deinstalling."
+    fi
+    /bin/rm -f /usr/local/etc/rpki.conf.sample
+
+    ;;
+
+POST-DEINSTALL)
+
+    # FreeBSD has no equivalent to Debian "purge" operation, so
+    # there are some things we're deliberately leaving undone here:
+    #
+    # - We're not dropping SQL tables
+    #
+    # - We're not deleting rpki.conf if it was modified
+    #
+    # - We're not deleting apache.{cer,key}
+    #
+    # Not really sure what to do about these.  To the extent that
+    # I understand the theory on FreeBSD (which seems to be less
+    # carefully worked out than on Debian), we're just supposed to
+    # leave these for the user to clean up.
+
+    ;;
+
+*)
+    echo "No clue what this script is meant to do when invoked with arguments \"$*\".  Punting."
+    exit 1
+    ;;
+
+esac

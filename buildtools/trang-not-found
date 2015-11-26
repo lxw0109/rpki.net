@@ -1,0 +1,44 @@
+#!/bin/sh -
+# $Id: trang-not-found 4937 2012-12-20 18:12:07Z sra $
+
+# Copyright (C) 2012  Internet Systems Consortium ("ISC")
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
+# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+# PERFORMANCE OF THIS SOFTWARE.
+
+# This script formerly used absolute paths for all (ie, both) programs
+# it called, as any sane script should, but it met defeat at the hands
+# of the penguinistas, who can't even agree on whether to keep the
+# "test" program in /bin or /usr/bin, thus creating a second-order
+# problem of finding the test program to test for the existence of the
+# program we really wanted to run.  Enough already.
+#
+# So: If this script breaks because it can't find the "cat" or "touch"
+# programs on your path, fix your path.
+
+cat <<EOF
+
+WARNING:
+
+trang XML schema converter not found on your system.  If you haven't
+modified any of the RelaxNG source files, you can ignore this, as it's
+probably a spurious warning caused by something stomping file
+modification times in the source repository or your local build tree.
+
+If you have modified the RelaxNG sources, you need to install trang
+(see installation manual).
+
+Suppressing this warning for file: $2
+
+EOF
+
+touch "$2"

@@ -1,0 +1,128 @@
+#!/bin/sh -
+
+case $2 in
+
+PRE-INSTALL)
+    if /usr/sbin/pw groupshow "rcynic" 2>/dev/null
+    then
+        echo "You already have a group \"rcynic\", so I will use it."
+    elif /usr/sbin/pw groupadd rcynic
+    then
+        echo "Added group \"rcynic\"."
+    else
+        echo "Adding group \"rcynic\" failed..."
+        echo "Please create it, then try again."
+        exit 1
+    fi
+    if /usr/sbin/pw usershow "rcynic" 2>/dev/null
+    then
+        echo "You already have a user \"rcynic\", so I will use it."
+    elif /usr/sbin/pw useradd rcynic -g rcynic -h - -d /nonexistant -s /usr/sbin/nologin -c "RPKI validation system"
+    then
+        echo "Added user \"rcynic\"."
+    else
+        echo "Adding user \"rcynic\" failed..."
+        echo "Please create it, then try again."
+        exit 1
+    fi
+    if /usr/sbin/pw groupshow "rpkirtr" 2>/dev/null
+    then
+        echo "You already have a group \"rpkirtr\", so I will use it."
+    elif /usr/sbin/pw groupadd rpkirtr
+    then
+        echo "Added group \"rpkirtr\"."
+    else
+        echo "Adding group \"rpkirtr\" failed..."
+        echo "Please create it, then try again."
+        exit 1
+    fi
+    if /usr/sbin/pw usershow "rpkirtr" 2>/dev/null
+    then
+        echo "You already have a user \"rpkirtr\", so I will use it."
+    elif /usr/sbin/pw useradd rpkirtr -g rpkirtr -h - -d /nonexistant -s /usr/sbin/nologin -c "RPKI router server"
+    then
+        echo "Added user \"rpkirtr\"."
+    else
+        echo "Adding user \"rpkirtr\" failed..."
+        echo "Please create it, then try again."
+        exit 1
+    fi
+    ;;
+
+POST-INSTALL)
+    if ! test -d /var/rcynic
+    then
+	echo "Creating /var/rcynic"
+	/usr/bin/install -o root -g wheel -d /var/rcynic
+    fi
+    for dir in /var/rcynic/data /var/rcynic/rpki-rtr
+    do
+	/usr/bin/install -o rcynic -g rcynic -d $dir
+    done
+    /usr/bin/install -o rpkirtr -g rcynic -m 775 -d /var/rcynic/rpki-rtr/sockets
+    if test ! -f /usr/local/etc/rcynic.conf
+    then
+	/bin/cp -p /usr/local/etc/rcynic.conf.sample /usr/local/etc/rcynic.conf
+    fi
+    htmldir=/usr/local/www/apache%%APACHE_VERSION%%/data/rcynic
+    /usr/bin/install -o rcynic -g rcynic -d $htmldir
+    if test "X`/usr/bin/crontab -l -u rcynic 2>/dev/null`" != "X"
+    then
+	echo "rcynic user already has a crontab, leaving it alone"
+    else
+	echo "Setting up rcynic's crontab to run rcynic-cron script"
+	/usr/bin/awk -v t=`/usr/bin/hexdump -n 2 -e '"%u\n"' /dev/random` '
+            BEGIN {printf "MAILTO=root\n%u * * * *\texec  /usr/local/bin/rcynic-cron\n", t % 60}' |
+	/usr/bin/crontab -u rcynic -
+    fi
+    echo "Setting up rpki-rtr listener under inetd"
+    if /usr/bin/egrep -q '^rpki-rtr' /etc/services
+    then
+        echo "You already have a /etc/services entry for rpki-rtr, so I will use it."
+    elif echo >>/etc/services "rpki-rtr	43779/tcp  #RFC 6810"
+    then
+        echo "Added rpki-rtr to /etc/services."
+    else
+        echo "Adding rpki-rtr to /etc/services failed, please fix this, then try again."
+        exit 1
+    fi
+    if /usr/bin/egrep -q "^rpki-rtr[ 	]+stream[ 	]+tcp6?[ 	].+rtr-origin" /etc/inetd.conf
+    then
+	echo "You have entries in /etc/inetd.conf for the old rpki-rtr implementation; these will not work anymore, so I will delete them."
+	if /usr/bin/egrep -v "^rpki-rtr[ 	]+stream[ 	]+tcp6?[ 	].+rtr-origin" /etc/inetd.conf >/etc/inetd.conf.tmp.$$
+	then
+	    /bin/mv /etc/inetd.conf.tmp.$$ /etc/inetd.conf
+	else
+	    /bin/rm -f /etc/inetd.conf.tmp.$$
+	    echo "Removing old rpki-rtr entries from /etc/inetd.conf failed, please remove them manually, then try again."
+	    exit 1
+	fi
+    fi
+    if /usr/bin/egrep -q "rpki-rtr[ 	]+stream[ 	]+tcp[ 	]" /etc/inetd.conf
+    then
+        echo "You already have an /etc/inetd.conf entry for rpki-rtr on TCPv4, so I will use it."
+    elif echo >>/etc/inetd.conf "rpki-rtr	stream	tcp	nowait	rpkirtr	/usr/local/bin/rpki-rtr	rpki-rtr server /var/rcynic/rpki-rtr"
+    then
+        echo "Added rpki-rtr for TCPv4 to /etc/inetd.conf."
+    else
+        echo "Adding rpki-rtr for TCPv4 to /etc/inetd.conf failed, please fix this, then try again."
+        exit 1
+    fi
+    if /usr/bin/egrep -q "rpki-rtr[ 	]+stream[ 	]+tcp6[ 	]" /etc/inetd.conf
+    then
+        echo "You already have an /etc/inetd.conf entry for rpki-rtr on TCPv6, so I will use it."
+    elif echo >>/etc/inetd.conf "rpki-rtr	stream	tcp6	nowait	rpkirtr	/usr/local/bin/rpki-rtr	rpki-rtr server /var/rcynic/rpki-rtr"
+    then
+        echo "Added rpki-rtr for TCPv6 to /etc/inetd.conf."
+    else
+        echo "Adding rpki-rtr for TCPv6 to /etc/inetd.conf failed, please fix this, then try again."
+        exit 1
+    fi
+    ;;
+
+*)
+    echo "No clue what this script is meant to do when invoked with arguments \"$*\".  Punting."
+    exit 1
+    ;;
+
+esac

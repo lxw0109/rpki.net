@@ -1,0 +1,5 @@
+rpki (0.6111~trusty) UNRELEASED; urgency=medium
+
+  * Version 0.6111 of https://subvert-rpki.hactrn.net/trunk/
+
+ -- APT Builder Robot <aptbot@rpki.net>  Sun, 11 Oct 2015 17:30:04 +0000

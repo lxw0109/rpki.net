@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+# $Id: scan_routercerts 5856 2014-05-31 18:32:19Z sra $
+#
+# Copyright (C) 2014 Dragon Research Labs ("DRL")
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND DRL DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS.  IN NO EVENT SHALL DRL BE LIABLE FOR ANY SPECIAL, DIRECT,
+# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+# PERFORMANCE OF THIS SOFTWARE.
+
+"""
+Scan rcynic validated output looking for router certificates, print
+out stuff that the rpki-rtr code cares about.
+"""
+
+import os
+import sys
+import base64
+import argparse
+import rpki.POW
+import rpki.oids
+
+def check_dir(s):
+  if not os.path.isdir(s):
+    raise argparse.ArgumentTypeError("%r is not a directory" % s)
+  return s
+
+parser = argparse.ArgumentParser(description = __doc__)
+parser.add_argument("rcynic_dir", type = check_dir, help = "rcynic authenticated output directory")
+args = parser.parse_args()
+
+for root, dirs, files in os.walk(args.rcynic_dir):
+
+  for fn in files:
+
+    if not fn.endswith(".cer"):
+      continue
+
+    x = rpki.POW.X509.derReadFile(os.path.join(root, fn))
+
+    if rpki.oids.id_kp_bgpsec_router not in (x.getEKU() or ()):
+      continue
+
+    sys.stdout.write(base64.urlsafe_b64encode(x.getSKI()).rstrip("="))
+
+    for min_asn, max_asn in x.getRFC3779()[0]:
+      for asn in xrange(min_asn, max_asn + 1):
+        sys.stdout.write(" %s" % asn)
+
+    sys.stdout.write(" %s\n" % base64.b64encode(x.getPublicKey().derWritePublic()))

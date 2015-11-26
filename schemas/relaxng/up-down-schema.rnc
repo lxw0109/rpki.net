@@ -1,0 +1,113 @@
+# $Id: up-down-schema.rnc 5757 2014-04-05 22:42:12Z sra $
+#
+# RelaxNG schema for the up-down protocol, extracted from RFC 6492.
+#
+# Copyright (c) 2012 IETF Trust and the persons identified as authors
+# of the code.  All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# * Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in
+#   the documentation and/or other materials provided with the
+#   distribution.
+#
+# * Neither the name of Internet Society, IETF or IETF Trust, nor the
+#   names of specific contributors, may be used to endorse or promote
+#   products derived from this software without specific prior written
+#   permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+default namespace = "http://www.apnic.net/specs/rescerts/up-down/"
+
+grammar {
+   resource_set_as = xsd:string { maxLength="512000" pattern="[\-,0-9]*" }
+   resource_set_ip4 = xsd:string { maxLength="512000" pattern="[\-,/.0-9]*" }
+   resource_set_ip6 = xsd:string { maxLength="512000" pattern="[\-,/:0-9a-fA-F]*" }
+
+   class_name = xsd:token { minLength="1" maxLength="1024" }
+   ski = xsd:token { minLength="27" maxLength="1024" }
+   label = xsd:token { minLength="1" maxLength="1024" }
+   cert_url = xsd:string { minLength="10" maxLength="4096" }
+   base64_binary = xsd:base64Binary { minLength="4" maxLength="512000" }
+
+   start = element message {
+     attribute version { xsd:positiveInteger { maxInclusive="1" } },
+     attribute sender { label },
+     attribute recipient { label },
+     payload
+   }
+
+   payload |= attribute type { "list" }, list_request
+   payload |= attribute type { "list_response"}, list_response
+   payload |= attribute type { "issue" }, issue_request
+   payload |= attribute type { "issue_response"}, issue_response
+   payload |= attribute type { "revoke" }, revoke_request
+   payload |= attribute type { "revoke_response"}, revoke_response
+   payload |= attribute type { "error_response"}, error_response
+
+   list_request = empty
+   list_response = class*
+
+   class = element class {
+     attribute class_name { class_name },
+     attribute cert_url { cert_url },
+     attribute resource_set_as { resource_set_as },
+     attribute resource_set_ipv4 { resource_set_ip4 },
+     attribute resource_set_ipv6 { resource_set_ip6 },
+     attribute resource_set_notafter { xsd:dateTime },
+     attribute suggested_sia_head { xsd:anyURI { maxLength="1024" pattern="rsync://.+"} }?,
+     element certificate {
+       attribute cert_url { cert_url },
+       attribute req_resource_set_as { resource_set_as }?,
+       attribute req_resource_set_ipv4 { resource_set_ip4 }?,
+       attribute req_resource_set_ipv6 { resource_set_ip6 }?,
+       base64_binary
+     }*,
+     element issuer { base64_binary }
+   }
+
+   issue_request = element request {
+     attribute class_name { class_name },
+     attribute req_resource_set_as { resource_set_as }?,
+     attribute req_resource_set_ipv4 { resource_set_ip4 }?,
+     attribute req_resource_set_ipv6 { resource_set_ip6 }?,
+     base64_binary
+   }
+   issue_response = class
+
+   revoke_request = revocation
+   revoke_response = revocation
+
+   revocation = element key {
+     attribute class_name { class_name },
+     attribute ski { ski }
+   }
+
+   error_response =
+     element status { xsd:positiveInteger { maxInclusive="9999" } },
+     element description { attribute xml:lang { xsd:language }, xsd:string { maxLength="1024" } }*
+}
+
+# Local Variables:
+# indent-tabs-mode: nil
+# comment-start: "# "
+# comment-start-skip: "#[ \t]*"
+# End:

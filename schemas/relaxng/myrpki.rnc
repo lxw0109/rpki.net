@@ -1,0 +1,164 @@
+# $Id: myrpki.rnc 5757 2014-04-05 22:42:12Z sra $
+#
+# RelaxNG schema for MyRPKI XML messages.
+#
+# This message protocol is on its way out, as we're in the process of
+# moving on from the user interface model that produced it, but even
+# after we finish replacing it we'll still need the schema for a while
+# to validate old messages when upgrading.
+#
+# libxml2 (including xmllint) only groks the XML syntax of RelaxNG, so
+# run the compact syntax through trang to get XML syntax.
+#
+# Copyright (C) 2009-2011  Internet Systems Consortium ("ISC")
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
+# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+# OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+# PERFORMANCE OF THIS SOFTWARE.
+
+default namespace = "http://www.hactrn.net/uris/rpki/myrpki/"
+
+version         = "2"
+
+base64		= xsd:base64Binary { maxLength="512000" }
+object_handle	= xsd:string { maxLength="255" pattern="[\-_A-Za-z0-9]+" }
+pubd_handle     = xsd:string { maxLength="255" pattern="[\-_A-Za-z0-9/]+" }
+uri		= xsd:anyURI { maxLength="4096" }
+asn             = xsd:positiveInteger
+asn_list	= xsd:string { maxLength="512000" pattern="[\-,0-9]+" }
+ipv4_list	= xsd:string { maxLength="512000" pattern="[\-,0-9/.]+" }
+ipv6_list	= xsd:string { maxLength="512000" pattern="[\-,0-9/:a-fA-F]+" }
+timestamp       = xsd:dateTime { pattern=".*Z" }
+
+# Message formate used between configure_resources and
+# configure_daemons.
+
+start |= element myrpki {
+  attribute version { version },
+  attribute handle { object_handle },
+  attribute service_uri { uri }?,
+  element roa_request {
+    attribute asn { asn },
+    attribute v4 { ipv4_list },
+    attribute v6 { ipv6_list }
+  }*,
+  element child {
+    attribute handle { object_handle },
+    attribute valid_until { timestamp },
+    attribute asns { asn_list }?,
+    attribute v4 { ipv4_list }?,
+    attribute v6 { ipv6_list }?,
+    element bpki_certificate { base64 }?
+  }*,
+  element parent {
+    attribute handle { object_handle },
+    attribute service_uri { uri }?,
+    attribute myhandle { object_handle }?,
+    attribute sia_base { uri }?,
+    element bpki_cms_certificate { base64 }?
+  }*,
+  element repository {
+    attribute handle { object_handle },
+    attribute service_uri { uri }?,
+    element bpki_certificate { base64 }?
+  }*,
+  element bpki_ca_certificate { base64 }?,
+  element bpki_crl { base64 }?,
+  element bpki_bsc_certificate { base64 }?,
+  element bpki_bsc_pkcs10 { base64 }?
+}
+
+# Format of an identity.xml file.
+
+start |= element identity {
+  attribute version { version },
+  attribute handle { object_handle },
+  element bpki_ta { base64 }
+}
+
+# Format of <authorization/> element used in referrals.  The Base64
+# text is a <referral/> (q. v.) element signed with CMS.
+
+authorization = element authorization {
+  attribute referrer { pubd_handle },
+  base64
+}
+
+# Format of <contact_info/> element used in referrals.
+
+contact_info = element contact_info {
+  attribute uri { uri }?,
+  xsd:string
+}
+
+# Variant payload portion of a <repository/> element.
+
+repository_payload = (
+  (attribute type { "none" }) |
+  (attribute type { "offer" }) |
+  (attribute type { "referral" }, authorization, contact_info)
+)
+
+# <parent/> element (response from configure_child).
+
+start |= element parent {
+  attribute version { version },
+  attribute valid_until { timestamp }?,
+  attribute service_uri { uri }?,
+  attribute child_handle { object_handle },
+  attribute parent_handle { object_handle },
+  element bpki_resource_ta { base64 },
+  element bpki_child_ta { base64 },
+  element repository { repository_payload }?
+}
+
+# <repository/> element, types offer and referral
+# (input to configure_publication_client).
+
+start |= element repository {
+  attribute version { version },
+  attribute handle { object_handle },
+  attribute parent_handle { object_handle },
+  repository_payload,
+  element bpki_client_ta { base64 }
+}
+
+# <repository/> element, confirmation type (output of
+# configure_publication_client).
+
+start |= element repository {
+  attribute version { version },
+  attribute type { "confirmed" },
+  attribute parent_handle { object_handle },
+  attribute client_handle { pubd_handle },
+  attribute service_uri { uri },
+  attribute sia_base { uri },
+  element bpki_server_ta { base64 },
+  element bpki_client_ta { base64 },
+  authorization?,
+  contact_info?
+}
+
+# <referral/> element.  This is the entirety of a separate message
+# which is signed with CMS then included ase the Base64 content of an
+# <authorization/> element in the main message.
+
+start |= element referral {
+  attribute version { version },
+  attribute authorized_sia_base { uri },
+  base64
+}
+
+# Local Variables:
+# indent-tabs-mode: nil
+# comment-start: "# "
+# comment-start-skip: "#[ \t]*"
+# End:

@@ -1,0 +1,5 @@
+# $Id: asns.csv 3283 2010-06-12 18:52:38Z sra $
+#
+# Syntax: <child_handle> <asn>
+#
+Alice	64533

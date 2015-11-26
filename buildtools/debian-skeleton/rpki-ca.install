@@ -1,0 +1,4 @@
+etc/rpki/rpki-confgen.xml
+usr/lib/rpki
+usr/sbin
+usr/share/rpki

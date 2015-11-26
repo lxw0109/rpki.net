@@ -1,0 +1,69 @@
+db-name:
+  /u/sra/rpki/subvert-rpki.hactrn.net/trunk/scripts/rcynic-lta.db
+
+rcynic-input:
+  /u/sra/rpki/subvert-rpki.hactrn.net/trunk/rcynic/rcynic-data/authenticated
+
+rcynic-output:
+  /u/sra/rpki/subvert-rpki.hactrn.net/trunk/rcynic/rcynic-data/lta-unauthenticated
+
+tal-directory:
+  /u/sra/rpki/subvert-rpki.hactrn.net/trunk/rcynic/sample-trust-anchors
+
+keyfile:
+  /u/sra/rpki/subvert-rpki.hactrn.net/trunk/scripts/rcynic-lta.key
+
+common:
+
+  - &VCARD-1 |
+      BEGIN:VCARD
+      VERSION:4.0
+      FN:R0
+      ORG:Organizational Entity
+      ADR;TYPE=WORK:;;42 Twisty Passage;Deep Cavern;WA;98666;U.S.A.
+      TEL;TYPE=VOICE,TEXT,WORK;VALUE=uri:tel:+1-666-555-1212
+      TEL;TYPE=FAX,WORK;VALUE=uri:tel:+1-666-555-1213
+      EMAIL:human@example.com
+      END:VCARD
+  -  &GBR-1 { gbr: *VCARD-1 }
+
+  - &VCARD-2 |
+      BEGIN:VCARD
+      VERSION:4.0
+      ORG:Epilogue Technology Corporation
+      EMAIL:sra@epilogue.com
+      END:VCARD
+  - &GBR-2 { gbr: *VCARD-2 }
+
+  - &ROA-666 { roa: { asn: 666 } }
+
+constraints:
+
+  # Need something for a drop test, sorry Randy
+  - prefix: 147.28.224.0/19
+    drop:   roas
+
+  - prefix: 10.0.0.0/8
+    add:    [ { roa: { asn: 666, maxlen: 16 }},  *GBR-1 ]
+
+  - prefix: 192.168.0.0/16
+    drop:   all
+
+  - asn:    666
+    add:    [ *GBR-1 ]
+
+  - prefix: 128.224.0.0/16
+    drop:   all
+    add:    [ *GBR-2 ]
+
+  - prefix: 128.224.1.0/24
+    add:    [ *GBR-2, *ROA-666 ]
+
+  - prefix: 128.224.2.0/24
+    add:    [ *GBR-2, *ROA-666 ]
+
+  - prefix: 149.20.0.0/16
+    add:    [ *ROA-666 ]
+
+  - prefix: 2001:4f8:3:d::/64
+    add:    [ *ROA-666 ]

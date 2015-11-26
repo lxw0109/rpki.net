@@ -1,0 +1,495 @@
+#!/usr/bin/env python
+
+"""
+Hosted GUI client startup script, for workshops, etc.
+
+As of when this is run, we assume that the tarball (contents TBD and
+perhaps changing from one workshop to another) have been unpacked,
+that we are on some Unix-like machine, and that we are executing in
+a Python interpreter.  We have to check anything else we care about.
+
+In what we hope is the most common case, this script should be run
+with no options.
+
+$Id: rpkidemo 3682 2011-02-17 07:38:52Z sra $
+
+Copyright (C) 2010  Internet Systems Consortium ("ISC")
+
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+"""
+
+# Check Python version before doing anything else
+
+import sys
+
+python_version = sys.version_info[:2]
+
+have_ssl_module = python_version >= (2, 6)
+
+if python_version == (2, 5):
+  print """
+        WARNING WARNING WARNING
+
+        You are running Python version 2.5, which does not include
+        real SSL support.  This means that sessions created by this
+        script will be vulnerable to monkey-in-the-middle attacks.
+
+        Python 2.6 does not have this problem.
+        """
+  while True:
+    answer = raw_input("Are you SURE you want to proceed? (yes/NO) ").strip().lower()
+    if answer in ("", "n", "no"):
+      sys.exit("You have chosen wisely")
+    elif answer in ("y", "yes"):
+      print "You have been warned"
+      break
+    else:
+      print 'Please answer "yes" or "no"'
+
+elif have_ssl_module:
+  try:
+    import ssl
+  except ImportError:
+    sys.exit("You're running Python 2.6+, but I can't find the ssl module, so you have no SSL support at all, argh!")
+
+else:
+  sys.exit("Sorry, this script requires Python 2.6+, I seem to be running in %s" % sys.version)
+
+# Ok, it's safe to import the other stuff we need now
+
+import os, subprocess, webbrowser, urllib2, getpass, re, errno, time, email.utils, httplib, socket, getopt, urllib, cookielib
+import tempfile
+from xml.etree.ElementTree import fromstring as ElementFromString
+
+def save(filename, data):
+  """
+  Save data to a file.
+  """
+
+  tempname = "%s.%d.tmp" % (filename, os.getpid())
+  f = open(tempname, "w")
+  f.write(data)
+  f.close()
+  os.rename(tempname, filename)
+
+def save_error(err):
+  """
+  Save the data from the file-like object "f" into a temporary file
+  and open a web browser to view the result.
+  """
+
+  with tempfile.NamedTemporaryFile(prefix = "rpkidemo-error", suffix = ".html", delete = False) as tmpf:
+    tmpf.write(err.read())
+
+    # Save filename for use outside the with statement.  This ensures
+    # the file is properly flushed prior to invoking the web browser.
+    fname = tmpf.name
+
+  sys.stderr.write("errors saved in %s\n" % fname)
+  webbrowser.open("file://" + fname)
+
+class CSV_File(object):
+  """
+  A CSV file that's being maintained by the GUI but being monitored,
+  downloaded, and used here.
+  """
+
+  def __init__(self, filename, url):
+    self.filename = filename
+    self.url = url
+    try:
+      self.timestamp = os.stat(filename).st_mtime
+    except:
+      self.store(0, "")
+
+  def last_modified(self):
+    """
+    Return CSV file timestamp formatted for use with HTTP.
+    """
+    return email.utils.formatdate(self.timestamp, False, True)
+
+  def store(self, timestamp, data):
+    """
+    Save CSV file, and record new timestamp.
+    """
+    save(self.filename, data)
+    self.timestamp = timestamp
+    os.utime(self.filename, (time.time(), timestamp))
+
+
+class AbstractHTTPSConnection(httplib.HTTPSConnection):
+  """
+  Customization of httplib.HTTPSConnection to enable certificate
+  validation.
+
+  This is an abstract class; subclass must set trust_anchor to the
+  filename of a anchor file in the format that the ssl module
+  expects.
+  """
+
+  trust_anchor = None
+
+  def connect(self):
+    assert self.trust_anchor is not None
+    sock = socket.create_connection((self.host, self.port), self.timeout)
+    if getattr(self, "_tunnel_host", None):
+      self.sock = sock
+      self._tunnel()
+    self.sock = ssl.wrap_socket(sock,
+                                keyfile = self.key_file,
+                                certfile = self.cert_file,
+                                cert_reqs = ssl.CERT_REQUIRED,
+                                ssl_version = ssl.PROTOCOL_TLSv1,
+                                ca_certs = self.trust_anchor)
+
+
+class main(object):
+  """
+  Main program.
+  """
+
+  # Environmental parameters
+
+  top = os.path.realpath(os.path.join((sys.path[0] or "."), ".."))
+  cwd = os.getcwd()
+
+  # Parameters that we might want to get from a config file.
+  # Just wire them all in for the moment.
+
+  base_url = "https://demo.rpki.net/"
+  myrpki_url = base_url + "rpki/"
+  auth_url = myrpki_url + "demo/login"
+  example_myrpki_cfg = "%s/rpkid/examples/rpki.conf" % top
+  working_dir = "%s/rpkidemo-data" % cwd
+  myrpki_py = "%s/rpkid/myrpki.py" % top
+  user_agent = "RPKIDemo"
+  delay = 15
+  trust_anchor = "%s/scripts/rpkidemo.pem" % top
+
+  openssl = None
+
+  def setup_openssl(self):
+    """
+    Find a usable version of OpenSSL, or build one if we must.
+    """
+
+    def scrape(*args):
+      return subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.STDOUT).communicate()[0]
+
+    def usable_openssl(f):
+      return f is not None and os.path.exists(f) and "-ss_cert" in scrape(f, "ca", "-?") and "Usage cms" in scrape(f, "cms", "-?")
+
+    for d in os.environ["PATH"].split(":"):
+      f = os.path.join(d, "openssl")
+      if usable_openssl(f):
+        self.openssl = f
+        break
+
+    if self.openssl is None:
+      print "Couldn't find usable openssl on path, attempting to build one"
+      subprocess.check_call(("./configure",), cwd = self.top)
+      subprocess.check_call(("make",), cwd = os.path.join(self.top, "openssl"))
+      self.openssl = os.path.join(self.top, "openssl", "openssl", "apps", "openssl")
+      print "Done building openssl"
+      print
+
+    if usable_openssl(self.openssl):
+      print "Using", self.openssl
+    else:
+      sys.exit("Could not find or build usable version of openssl, giving up")
+
+  @staticmethod
+  def setup_utc():
+    """
+    This script thinks in UTC.
+    """
+
+    os.environ["TZ"] = "UTC"
+    time.tzset()
+
+  def setup_username(self):
+    """
+    Get username and password for web interface, construct urllib2
+    "opener" tailored for our use, perform an initial GET (ignoring
+    result, other than exceptions) to test the username and password.
+    """
+
+    print "I need to know your username and password on the Django GUI server to proceed"
+
+    while True:
+
+      try:
+        self.username = raw_input("Username: ")
+        self.password = getpass.getpass()
+
+        handlers = []
+
+        self.cookiejar = cookielib.CookieJar()
+        handlers.append(urllib2.HTTPCookieProcessor(self.cookiejar))
+
+        if have_ssl_module:
+
+          class HTTPSConnection(AbstractHTTPSConnection):
+            trust_anchor = self.trust_anchor
+
+          class HTTPSHandler(urllib2.HTTPSHandler):
+            def https_open(self, req):
+              return self.do_open(HTTPSConnection, req)
+
+          handlers.append(HTTPSHandler)
+
+        self.opener = urllib2.build_opener(*handlers)
+
+        # Test login credentials
+        resp = self.opener.open(self.auth_url) # GET
+
+        r = self.opener.open(urllib2.Request(
+          url = self.auth_url,
+          data = urllib.urlencode({ "username"            : self.username,
+                                    "password"            : self.password,
+                                    "csrfmiddlewaretoken" : self.csrftoken() }),
+          headers = { "Referer"    : self.auth_url,
+                      "User-Agent" : self.user_agent})) # POST
+        return
+
+      except urllib2.URLError, e:
+        print "Could not log in to server: %s" % e
+        print "Please try again"
+        save_error(e)
+
+  def csrftoken(self):
+    """
+    Pull Django's CSFR token from cookie database.
+
+    Django's login form requires the "csrfmiddlewaretoken."  It turns out
+    this is the same value as the "csrftoken" cookie, so we don't need
+    to bother parsing the form.
+    """
+
+    return [c.value for c in self.cookiejar if c.name == "csrftoken"][0]
+
+  def setup_working_directory(self):
+    """
+    Create working directory and move to it.
+    """
+
+    try:
+      print "Creating", self.working_dir
+      os.mkdir(self.working_dir)
+    except OSError, e:
+      if e.errno != errno.EEXIST:
+        raise
+      print self.working_dir, "already exists, reusing it"
+    os.chdir(self.working_dir)
+
+  def setup_config_file(self):
+    """
+    Generate rpki.conf
+    """
+    
+    if os.path.exists("rpki.conf"):
+      print "You already have a rpki.conf file, so I will use it"
+      return
+
+    print "Generating rpki.conf"
+    section_regexp = re.compile("\s*\[\s*(.+?)\s*\]\s*$")
+    variable_regexp = re.compile("\s*([-a-zA-Z0-9_]+)\s*=\s*(.+?)\s*$")
+    f = open("rpki.conf", "w")
+    f.write("# Automatically generated, do not edit\n")
+    section = None
+    for line in open(self.example_myrpki_cfg):
+      m = section_regexp.match(line)
+      if m:
+        section = m.group(1)
+      m = variable_regexp.match(line)
+      option = m.group(1) if m and section == "myrpki" else None
+      value  = m.group(2) if option else None
+      if option == "handle":
+        line = "handle = %s\n" % self.username
+      if option == "openssl":
+        line = "openssl = %s\n" % self.openssl
+      if option in ("run_rpkid", "run_pubd", "run_rootd") and value != "false":
+        line = "%s = false\n" % option
+      f.write(line)
+    f.close()
+
+  def myrpki(self, *cmd):
+    """
+    Run a myrpki command.
+    """
+    return subprocess.check_call((sys.executable, self.myrpki_py) + cmd)
+
+  def upload(self, url, filename):
+    """
+    Upload filename to URL, return result.
+    """
+
+    url = "%s%s/%s" % (self.myrpki_url, url, self.username)
+    data = open(filename).read()
+    print "Uploading", filename, "to", url
+    post_data = urllib.urlencode({
+      "content"             : data,
+      "csrfmiddlewaretoken" : self.csrftoken() }) # POST
+    try:
+      return self.opener.open(urllib2.Request(url, post_data, {
+        "User-Agent"   : self.user_agent,
+        "Referer"      : url}))
+    except urllib2.HTTPError, e:
+      sys.stderr.write("Problem uploading to URL %s\n" % url)
+      save_error(e)
+      raise
+
+  def update(self):
+    """
+    Run configure_resources, upload result, download updated result.
+    """
+
+    self.myrpki("configure_resources")
+    r = self.upload("demo/myrpki-xml", "myrpki.xml")
+    save("myrpki.xml", r.read())
+
+  def setup_csv_files(self):
+    """
+    Create CSV file objects and synchronize timestamps.
+    """
+
+    self.csv_files = [
+      CSV_File("asns.csv",     "demo/down/asns/%s"     % self.username),
+      CSV_File("prefixes.csv", "demo/down/prefixes/%s" % self.username),
+      CSV_File("roas.csv",     "demo/down/roas/%s"     % self.username) ]
+
+  def upload_for_response(self, url, path):
+    """
+    Upload an XML file to the requested URL and wait for for the server
+    to signal that a response is ready.
+    """
+
+    self.upload(url, path)
+
+    print """
+          Waiting for response to upload.  This may require action by a human
+          being on the server side, so it may take a while, please be patient.
+          """
+
+    while True:
+      try:
+        return self.opener.open(urllib2.Request(
+          "%s%s/%s" % (self.myrpki_url, url, self.username),
+          None,
+          { "User-Agent" : self.user_agent }))
+      except urllib2.HTTPError, e:
+        # Portal GUI uses response code 503 to signal "not ready"
+        if e.code != 503:
+          sys.stderr.write("Problem getting response from %s: %s\n" % (url, e))
+          save_error(e)
+          raise
+      time.sleep(self.delay)
+
+  def setup_parent(self):
+    """
+    Upload the user's identity.xml and wait for the portal gui to send
+    back the parent.xml response.
+    """
+
+    r = self.upload_for_response("demo/parent-request", "entitydb/identity.xml")
+    parent_data = r.read()
+    save("parent.xml", parent_data)
+    self.myrpki("configure_parent", "parent.xml")
+
+    # Extract the parent_handle from the xml response and save it for use by
+    # setup_repository()
+    self.parent_handle = ElementFromString(parent_data).get("parent_handle")
+
+  def setup_repository(self):
+    """
+    Upload the repository referral to the portal-gui and wait the
+    response from the repository operator.
+    """
+
+    r = self.upload_for_response("demo/repository-request", "entitydb/repositories/%s.xml" % self.parent_handle)
+    save("repository.xml", r.read())
+    self.myrpki("configure_repository", "repository.xml")
+
+  def poll(self, csv_file):
+    """
+    Poll for new version of a CSV file, save if changed, return
+    boolean indicating whether file has changed.
+    """
+
+    try:
+      url = self.myrpki_url + csv_file.url
+      r = self.opener.open(urllib2.Request(url, None, {
+        "If-Modified-Since" : csv_file.last_modified(),
+        "User-Agent"        : self.user_agent }))
+      timestamp = time.mktime(r.info().getdate("Last-Modified"))
+      csv_file.store(timestamp, r.read())
+      return True
+    except urllib2.HTTPError, e:
+      if e.code == 304:                   # 304 == "Not Modified"
+        return False
+      else:
+        sys.stderr.write("Problem polling URL %s\n" % url)
+        save_error(e)
+        raise
+
+  def poll_loop(self):
+    """
+    Loop forever, polling for updates.
+    """
+
+    while True:
+      changed = False
+      for csv_file in self.csv_files:
+        if self.poll(csv_file):
+          changed = True
+      if changed:
+        self.update()
+      time.sleep(self.delay)
+
+  def getopt(self):
+    """
+    Parse options.
+    """
+    opts, argv = getopt.getopt(sys.argv[1:], "hi?", ["help"])
+    for o, a in opts:
+      if o in ("-h", "--help", "-?"):
+        print __doc__
+        sys.exit(0)
+    if argv:
+      sys.exit("Unexpected arguments %r" % (argv,))
+
+  def __init__(self):
+    self.getopt()
+    self.setup_utc()
+    self.setup_openssl()
+    self.setup_username()
+    self.setup_working_directory()
+    self.setup_config_file()
+    self.setup_csv_files()
+    self.myrpki("initialize")
+    self.setup_parent()
+    self.setup_repository()
+    self.update()
+    self.update()
+
+    webbrowser.open(self.myrpki_url)
+
+    self.poll_loop()
+
+main()
+
+# Local Variables:
+# mode:python
+# End:
+
+# vim:sw=2 ts=8 expandtab

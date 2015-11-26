@@ -1,0 +1,11 @@
+$Id: README 4424 2012-04-16 20:32:12Z sra $ -*- Text -*-
+
+RPKI CA tools.
+
+See:
+
+- The  primary documentation at http://trac.rpki.net/
+
+- The PDF manual in ../doc/manual.pdf, or
+
+- The flat text pages ../doc/doc.RPKI.CA*
