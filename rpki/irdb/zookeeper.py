@@ -911,6 +911,7 @@ class Zookeeper(object):
     grouped6 = {}
 
     #lxw    csv_reader pre-process the file? remove the resources do not exist?
+    #           NO pre-process, only read the file and return each line.
     for handle, prefix in csv_reader(filename, columns = 2):
       grouped = grouped6 if ":" in prefix else grouped4
       if handle not in grouped:
