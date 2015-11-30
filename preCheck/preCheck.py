@@ -7,12 +7,25 @@ base = 256
 square = base * base
 cube = square * base
 
-def initASDict():
+def initASDict(asDict):
     #IANA
     '''
     ASN:       0-4294967295
     '''
-    pass
+    ianaMin = 0
+    ianaMax = 4294967295
+    asDict["iana"] = [(ianaMin, ianaMax)]
+
+    #APNIC
+    '''
+    ASN:       64497-64510,65537-65550
+    '''
+    apnic1Min = 64497
+    apnic1Max = 64510
+    apnic2Min = 65537
+    apnic2Max = 65550
+    asDict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max)]
+
 
 def initIPV4Dict(ipv4Dict):
     #IANA
@@ -26,9 +39,7 @@ def initIPV4Dict(ipv4Dict):
 
     #APNIC
     '''
-    apnic   192.0.2.128/25
-    apnic   198.51.100.128/25
-    apnic   203.0.113.128/25
+    IPv4:      192.0.2.128/25,198.51.100.128/25,203.0.113.128/25
     '''
     apnic1Min = 192 * cube + 2 * base + 128
     apnic1Max = 192 * cube + 2 * base + 255
@@ -37,10 +48,6 @@ def initIPV4Dict(ipv4Dict):
     apnic3Min = 203 * cube + 113 * base + 128
     apnic3Max = 203 * cube + 113 * base + 255
     ipv4Dict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max), (apnic3Min, apnic3Max)]
-
-    print apnic1Min, apnic1Max
-    print apnic2Min, apnic2Max
-    print apnic3Min, apnic3Max
 
     '''
     cnnic   192.0.2.128/26
@@ -66,10 +73,13 @@ def showStrListTuple(aDict):
     str: [(intMin, intMax), ...]
     '''
     for key in aDict.iterkeys():
-        print key, "\t", #no "\n"
-        for tup
+        print key, "\t",
+        for intMin, intMax in aDict[key]:
+            print "{0}-{1}, ".format(intMin, intMax),
+        print ""    #newline
 
 def main():
+    #Initialize
     '''
     After initIPV4Dict(ipv4Dict), ipv4Dict is like:
     {"iana":[(0, 4294967295)],
@@ -77,7 +87,22 @@ def main():
     '''
     ipv4Dict = {}
     initIPV4Dict(ipv4Dict)
-    showStrListTuple(ipv4Dict)
+    #showStrListTuple(ipv4Dict)
+    asDict = {}
+    initASDict(asDict)
+    #showStrListTuple(asDict)
+
+    #Set the value of asDict and ipv4Dict
+
+def checkASN():
+    '''
+    '''
+    pass
+
+def checkIP():
+    '''
+    '''
+    pass
 
 if __name__ == "__main__":
     main()
