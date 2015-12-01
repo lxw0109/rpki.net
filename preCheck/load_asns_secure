@@ -7,15 +7,17 @@ if [ $# -lt 1 ]
 then
     echo "Usage: load_asns_secure -i apnic file.csv"
     exit 0
+"""
 else
+    echo $0
     echo $1
     echo $2
     echo $3
+"""
 fi
 
-./preCheck.py $1 $2 $3
+./preCheckASN.py $1 $2 $3
 
-echo "\$?:" $?
 if [ $? -eq 0 ]
 then
     echo "0"

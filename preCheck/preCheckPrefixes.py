@@ -1,5 +1,5 @@
 #!/usr/bin/python2.7
-# FileName: ipCalculate.py
+# FileName: preCheckPrefixes.py
 # Author: lxw
 # Date: 2015-11-30
 
@@ -90,6 +90,26 @@ def checkIP():
     '''
     pass
 
+def readFile(filename):
+    '''
+    create content(each line) from filename.
+    yield is good.
+    '''
+    with open(filename, "r") as f:
+        for line in f:
+            yield line
+
+def getHandle():
+    '''
+    Get handle from /etc/rpki.conf
+    '''
+    for line in readFile("/etc/rpki.conf"):
+        line = line.strip()
+        if line.startwith("handle"):
+            lineList = line.split()
+            return lineList[2]
+    return ""
+
 def main():
     #Initialize
     '''
@@ -97,7 +117,6 @@ def main():
     {"iana":[(0, 4294967295)],
     "apnic":[(3221226112, 3221226239), (3325256832, 3325256959), (3405803904, 3405804031)]}
     '''
-    print "\nIn preCheck.py."
     ipv4Dict = {}
     initIPV4Dict(ipv4Dict)
     #showStrListTuple(ipv4Dict)
@@ -106,13 +125,17 @@ def main():
     #showStrListTuple(asDict)
 
     #Get input
-    #    0         1    2      3
-    #./preCheck.py -i apnic abc.csv
+    #    0         1    2      3 #./preCheck.py -i apnic abc.csv
+
     length = len(sys.argv)
-    if length < 2:
-    for arg in sys.argv:
-        print arg,
-    print ""
+    #length is bigger than 2.
+    if length < 3:
+        handle = getHandle()
+        fileName = sys.argv[1].strip()
+    else:
+        handle = sys.argv[2].strip()
+        fileName = sys.argv[3].strip()
+    print "handle: {0}, fileName: {1}".format(handle, fileName)
 
 
 if __name__ == "__main__":
