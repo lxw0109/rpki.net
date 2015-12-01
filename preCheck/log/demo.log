@@ -1,0 +1,3 @@
+Tue, 01 Dec 2015 17:44:04 demo.py[line:11] DEBUG debug message
+Tue, 01 Dec 2015 17:44:04 demo.py[line:12] INFO info message
+Tue, 01 Dec 2015 17:44:04 demo.py[line:13] WARNING warning message

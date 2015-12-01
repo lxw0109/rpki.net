@@ -3,6 +3,8 @@
 # Author: lxw
 # Date: 2015-11-30
 
+import sys
+
 base = 256
 square = base * base
 cube = square * base
@@ -75,24 +77,8 @@ def showStrListTuple(aDict):
     for key in aDict.iterkeys():
         print key, "\t",
         for intMin, intMax in aDict[key]:
-            print "{0}-{1}, ".format(intMin, intMax),
+            print "{0}-{1},".format(intMin, intMax),
         print ""    #newline
-
-def main():
-    #Initialize
-    '''
-    After initIPV4Dict(ipv4Dict), ipv4Dict is like:
-    {"iana":[(0, 4294967295)],
-    "apnic":[(3221226112, 3221226239), (3325256832, 3325256959), (3405803904, 3405804031)]}
-    '''
-    ipv4Dict = {}
-    initIPV4Dict(ipv4Dict)
-    #showStrListTuple(ipv4Dict)
-    asDict = {}
-    initASDict(asDict)
-    #showStrListTuple(asDict)
-
-    #Set the value of asDict and ipv4Dict
 
 def checkASN():
     '''
@@ -103,6 +89,31 @@ def checkIP():
     '''
     '''
     pass
+
+def main():
+    #Initialize
+    '''
+    After initIPV4Dict(ipv4Dict), ipv4Dict is like:
+    {"iana":[(0, 4294967295)],
+    "apnic":[(3221226112, 3221226239), (3325256832, 3325256959), (3405803904, 3405804031)]}
+    '''
+    print "\nIn preCheck.py."
+    ipv4Dict = {}
+    initIPV4Dict(ipv4Dict)
+    #showStrListTuple(ipv4Dict)
+    asDict = {}
+    initASDict(asDict)
+    #showStrListTuple(asDict)
+
+    #Get input
+    #    0         1    2      3
+    #./preCheck.py -i apnic abc.csv
+    length = len(sys.argv)
+    if length < 2:
+    for arg in sys.argv:
+        print arg,
+    print ""
+
 
 if __name__ == "__main__":
     main()
