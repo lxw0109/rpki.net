@@ -112,7 +112,7 @@ def checkASN(handle, fileName, asDict):
             childASDict[lineList[0]] = [(asMin, asMax)]
 
     #Out of "for" scope.
-    #Resource Allocation check(资源的重复分配)
+    #Resource Re-Allocation check(资源的重复分配)
     '''
     csv file:
     cnnic	64498-64505
@@ -126,13 +126,34 @@ def checkASN(handle, fileName, asDict):
     twnic   64497-64497,
     cnnic   64498-64505, 65540-65540,
     '''
-    showStrListTuple(childASDict)
+    overlapFlag = False
+    #showStrListTuple(childASDict)
     for key in childASDict.keys():
         for asMin, asMax in childASDict[key]:
             for key1 in childASDict.keys():
                 if key1 != key:
                     for asMin1, asMax1 in childASDict[key1]:
+                        if asMin > asMax1 or asMax < asMin1:
+                            continue
+                        else:
+                            asOverlapMin = max(asMin, asMin1)
+                            asOverlapMax = min(asMax, asMax1)
+                            overlapFlag = True
+                            break   #Re-Allocation Found
+                if overlapFlag:
+                    break
+            if overlapFlag:
+                break
+        if overlapFlag:
+            break
 
+    if overlapFlag:     #Re-Allocation Found
+        if asOverlapMin == asOverlapMax:
+            reAllocAS = str(asOverlapMin)
+        else:
+            reAllocAS = "{0}-{1}".format(asOverlapMin, asOverlapMax)
+        print "Resources Re-Allocation Found:\n  {0} \"{1}\" \n  AS{1} are allocated more than once.".format(fileName, reAllocAS)
+        return 1
 
 
 def main():
@@ -160,5 +181,3 @@ if __name__ == "__main__":
     main()
 else:
     print "imported as an module"
-
-Please modify "apnic2Asns.csv" file, and run "load_asns_secure" again.

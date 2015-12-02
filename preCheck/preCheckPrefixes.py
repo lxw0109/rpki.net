@@ -1,4 +1,5 @@
 #!/usr/bin/python2.7
+#coding: utf-8
 # FileName: preCheckPrefixes.py
 # Author: lxw
 # Date: 2015-11-30
@@ -8,66 +9,6 @@ import sys
 base = 256
 square = base * base
 cube = square * base
-
-def initASDict(asDict):
-    #IANA
-    '''
-    ASN:       0-4294967295
-    '''
-    ianaMin = 0
-    ianaMax = 4294967295
-    asDict["iana"] = [(ianaMin, ianaMax)]
-
-    #APNIC
-    '''
-    ASN:       64497-64510,65537-65550
-    '''
-    apnic1Min = 64497
-    apnic1Max = 64510
-    apnic2Min = 65537
-    apnic2Max = 65550
-    asDict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max)]
-
-
-def initIPV4Dict(ipv4Dict):
-    #IANA
-    '''
-    IPv4:      0.0.0.0/0
-    IPv6:      ::/0
-    '''
-    ianaMin = 0
-    ianaMax = 255 * cube + 255 * square + 255 * base + 255
-    ipv4Dict["iana"] = [(ianaMin, ianaMax)]
-
-    #APNIC
-    '''
-    IPv4:      192.0.2.128/25,198.51.100.128/25,203.0.113.128/25
-    '''
-    apnic1Min = 192 * cube + 2 * base + 128
-    apnic1Max = 192 * cube + 2 * base + 255
-    apnic2Min = 198 * cube + 51 * square + 100 * base + 128
-    apnic2Max = 198 * cube + 51 * square + 100 * base + 255
-    apnic3Min = 203 * cube + 113 * base + 128
-    apnic3Max = 203 * cube + 113 * base + 255
-    ipv4Dict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max), (apnic3Min, apnic3Max)]
-
-    '''
-    cnnic   192.0.2.128/26
-    cnnic   198.51.100.128/26
-    cnnic   203.0.113.128/26
-    jpnic   203.0.113.128/26
-    twnic   192.0.2.192/26
-    twnic   192.0.3.128/26
-    cnnic1Min = 192 * cube + 2 * base + 128
-    cnnic1Max = 192 * cube + 2 * base + 255
-    cnnic2Min = 198 * cube + 51 * square + 100 * base + 128
-    cnnic2Max = 198 * cube + 51 * square + 100 * base + 255
-    cnnic3Min = 203 * cube + 113 * base + 128
-    cnnic3Max = 203 * cube + 113 * base + 255
-    print cnnic1Min, cnnic1Max
-    print cnnic2Min, cnnic2Max
-    print cnnic3Min, cnnic3Max
-    '''
 
 def showStrListTuple(aDict):
     '''
@@ -80,15 +21,6 @@ def showStrListTuple(aDict):
             print "{0}-{1},".format(intMin, intMax),
         print ""    #newline
 
-def checkASN():
-    '''
-    '''
-    pass
-
-def checkIP():
-    '''
-    '''
-    pass
 
 def readFile(filename):
     '''
@@ -110,23 +42,129 @@ def getHandle():
             return lineList[2]
     return ""
 
+def initASDict(asDict):
+    '''
+    Here we just initialize AS info by manual.
+    When Left-Right protocol is standardized, this should be initialized automatically with the authoratitive resource-holding data.
+    '''
+    #IANA
+    '''
+    ASN:       0-4294967295
+    '''
+    ianaMin = 0
+    ianaMax = 4294967295
+    asDict["iana"] = [(ianaMin, ianaMax)]
+
+    #APNIC
+    '''
+    ASN:       64497-64510,65537-65550
+    '''
+    apnic1Min = 64497
+    apnic1Max = 64510
+    apnic2Min = 65537
+    apnic2Max = 65550
+    asDict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max)]
+
+def checkASN(handle, fileName, asDict):
+    '''
+    ./preCheckASN.py -i apnic abc.csv
+    handle = apnic
+    fileName = abc.csv
+    The format of "fileName" file is like:
+    cnnic	64498-64505
+    cnnic	65540
+    jpnic	65540-65550
+    '''
+    lineno = 0
+    childASDict = {}
+    for line in readFile(fileName):
+        lineno += 1
+        lineList = line.split()
+        #only care about lineList[1].
+        if "-" in lineList[1]:  #range
+            asRange = lineList[1].split("-")
+            asMin = int(asRange[0])
+            asMax = int(asRange[1])
+        else:
+            asMin = int(lineList[1])
+            asMax = int(lineList[1])
+
+        #Resource-holding check(未获授权资源分配)
+        flag = False
+        for low, high in asDict[handle]:
+            if asMin >= low and asMax <= high:
+                #print "OK: {0}-{1} is in range {2}-{3}.".format(asMin, asMax, low, high)
+                flag = True
+                break    #OK
+        if not flag:
+            #print "Error: {0}-{1} does not belong to {2}.".format(asMin, asMax, handle)
+            #return 1    #illegal
+            if asMin == asMax:
+                unAuthAS = str(asMin)
+            else:
+                unAuthAS = "{0}-{1}".format(asMin, asMax)
+
+            print "Unauthorized Resources Found:\n  {0} [line:{1}] \"{2}\" \n  AS{3} does not belong to {4}".format(fileName, lineno, line.strip(), unAuthAS, handle)
+            return 1
+        if lineList[0] in childASDict:
+            childASDict[lineList[0]].append((asMin, asMax))
+        else:
+            childASDict[lineList[0]] = [(asMin, asMax)]
+
+    #Out of "for" scope.
+    #Resource Re-Allocation check(资源的重复分配)
+    '''
+    csv file:
+    cnnic	64498-64505
+    cnnic	65540
+    jpnic	65540-65550
+    twnic	64497
+    twnic	65551
+
+    childASDict:
+    jpnic   65540-65550,
+    twnic   64497-64497,
+    cnnic   64498-64505, 65540-65540,
+    '''
+    overlapFlag = False
+    #showStrListTuple(childASDict)
+    for key in childASDict.keys():
+        for asMin, asMax in childASDict[key]:
+            for key1 in childASDict.keys():
+                if key1 != key:
+                    for asMin1, asMax1 in childASDict[key1]:
+                        if asMin > asMax1 or asMax < asMin1:
+                            continue
+                        else:
+                            asOverlapMin = max(asMin, asMin1)
+                            asOverlapMax = min(asMax, asMax1)
+                            overlapFlag = True
+                            break   #Re-Allocation Found
+                if overlapFlag:
+                    break
+            if overlapFlag:
+                break
+        if overlapFlag:
+            break
+
+    if overlapFlag:     #Re-Allocation Found
+        if asOverlapMin == asOverlapMax:
+            reAllocAS = str(asOverlapMin)
+        else:
+            reAllocAS = "{0}-{1}".format(asOverlapMin, asOverlapMax)
+        print "Resources Re-Allocation Found:\n  {0} \"{1}\" \n  AS{1} are allocated more than once.".format(fileName, reAllocAS)
+        return 1
+
+
 def main():
     #Initialize
-    '''
-    After initIPV4Dict(ipv4Dict), ipv4Dict is like:
-    {"iana":[(0, 4294967295)],
-    "apnic":[(3221226112, 3221226239), (3325256832, 3325256959), (3405803904, 3405804031)]}
-    '''
-    ipv4Dict = {}
-    initIPV4Dict(ipv4Dict)
-    #showStrListTuple(ipv4Dict)
     asDict = {}
     initASDict(asDict)
     #showStrListTuple(asDict)
 
     #Get input
-    #    0         1    2      3 #./preCheck.py -i apnic abc.csv
-
+    #    0         1    2      3
+    #./preCheckASN.py -i apnic abc.csv
     length = len(sys.argv)
     #length is bigger than 2.
     if length < 3:
@@ -135,8 +173,9 @@ def main():
     else:
         handle = sys.argv[2].strip()
         fileName = sys.argv[3].strip()
-    print "handle: {0}, fileName: {1}".format(handle, fileName)
-
+    #print "handle: {0}, fileName: {1}".format(handle, fileName)
+    result = checkASN(handle, fileName, asDict)
+    exit(result)
 
 if __name__ == "__main__":
     main()
