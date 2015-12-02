@@ -75,8 +75,10 @@ def checkASN(handle, fileName, asDict):
     cnnic	65540
     jpnic	65540-65550
     '''
-    unAuthAS  = ""
+    lineno = 0
+    childASDict = {}
     for line in readFile(fileName):
+        lineno += 1
         lineList = line.split()
         #only care about lineList[1].
         if "-" in lineList[1]:  #range
@@ -87,25 +89,50 @@ def checkASN(handle, fileName, asDict):
             asMin = int(lineList[1])
             asMax = int(lineList[1])
 
-
         #Resource-holding check(未获授权资源分配)
         flag = False
         for low, high in asDict[handle]:
             if asMin >= low and asMax <= high:
-                print "OK: {0}-{1} is in range {2}-{3}.".format(asMin, asMax, low, high)
+                #print "OK: {0}-{1} is in range {2}-{3}.".format(asMin, asMax, low, high)
                 flag = True
                 break    #OK
         if not flag:
             #print "Error: {0}-{1} does not belong to {2}.".format(asMin, asMax, handle)
             #return 1    #illegal
             if asMin == asMax:
-                unAuthAS += str(asMin)
+                unAuthAS = str(asMin)
             else:
-                unAuthAS += "{0}-{1} ".format(asMin, asMax)
+                unAuthAS = "{0}-{1}".format(asMin, asMax)
 
-        #Resource Allocation check(资源的重复分配)
-        #May not be so easy.
-        pass
+            print "Unauthorized Resources Found:\n  {0} [line:{1}] \"{2}\" \n  AS{3} does not belong to {4}".format(fileName, lineno, line.strip(), unAuthAS, handle)
+            return 1
+        if lineList[0] in childASDict:
+            childASDict[lineList[0]].append((asMin, asMax))
+        else:
+            childASDict[lineList[0]] = [(asMin, asMax)]
+
+    #Out of "for" scope.
+    #Resource Allocation check(资源的重复分配)
+    '''
+    csv file:
+    cnnic	64498-64505
+    cnnic	65540
+    jpnic	65540-65550
+    twnic	64497
+    twnic	65551
+
+    childASDict:
+    jpnic   65540-65550,
+    twnic   64497-64497,
+    cnnic   64498-64505, 65540-65540,
+    '''
+    showStrListTuple(childASDict)
+    for key in childASDict.keys():
+        for asMin, asMax in childASDict[key]:
+            for key1 in childASDict.keys():
+                if key1 != key:
+                    for asMin1, asMax1 in childASDict[key1]:
+
 
 
 def main():
@@ -133,3 +160,5 @@ if __name__ == "__main__":
     main()
 else:
     print "imported as an module"
+
+Please modify "apnic2Asns.csv" file, and run "load_asns_secure" again.
