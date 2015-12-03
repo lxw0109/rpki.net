@@ -6,7 +6,7 @@
 # "$#" does not involve the program name.
 if [ $# -lt 1 ]
 then
-    echo "Usage: load_asns_secure -i apnic file.csv"
+    echo "Usage: load_prefixes_secure -i apnic file.csv"
     exit 0
 elif [ $# -lt 2 ] #only fileName
 then
@@ -16,7 +16,7 @@ then
         echo "IOError: No such file or directory: $1"
         exit 0
     fi
-    ./preCheckASN.py $1
+    ./preCheckPrefix.py $1
 else
     #Test whether $3 is a legal parameter.
     if ! [ -e "$3" ]
@@ -24,14 +24,14 @@ else
         echo "IOError: No such file or directory: $3"
         exit 0
     fi
-    ./preCheckASN.py $1 $2 $3
+    ./preCheckPrefix.py $1 $2 $3
 fi
 
 if [ $? -eq 0 ]
 then
-    command="rpkic $1 $2 load_asns $3abc"
+    command="rpkic $1 $2 load_prefixes $3abc"
     #echo "OK. command: $command"
     #$command    #OK
 else
-    echo -e "\nPlease modify \"$3\" file, and run \"load_asns_secure\" again."
+    echo -e "\nPlease modify \"$3\" file, and run \"load_prefixes_secure\" again."
 fi

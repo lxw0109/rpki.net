@@ -1,14 +1,19 @@
 #!/usr/bin/python2.7
 #coding: utf-8
-# FileName: preCheckPrefixes.py
+# FileName: preCheckPrefix.py
 # Author: lxw
 # Date: 2015-11-30
 
 import sys
 
-base = 256
-square = base * base
-cube = square * base
+right0 = 255
+right1 = (255 << 8) + right0
+right2 = (255 << 16) + right1     #left1
+right3 = (255 << 24) + right2     #left0
+
+#         10000000 11000000 11100000 11110000 11111000 11111100 11111110 11111111
+binBit = {1: 0x80, 2: 0xC0, 3: 0xE0, 4: 0xF0, 5: 0xF8, 6: 0xFC, 7: 0xFE, 8: 0xFF}
+maxBit = {1: 0x7F, 2: 0x3F, 3: 0x1F, 4: 0x0F, 5: 0x07, 6: 0x03, 7: 0x01, 8: 0x00}
 
 def showStrListTuple(aDict):
     '''
@@ -20,7 +25,6 @@ def showStrListTuple(aDict):
         for intMin, intMax in aDict[key]:
             print "{0}-{1},".format(intMin, intMax),
         print ""    #newline
-
 
 def readFile(filename):
     '''
@@ -42,28 +46,81 @@ def getHandle():
             return lineList[2]
     return ""
 
-def initASDict(asDict):
+def ipv4ToRange(ipStr):
     '''
-    Here we just initialize AS info by manual.
+    ipStr is like: 192.0.2.128/25
+    '''
+    slashList = ipStr.split("/")
+    prefixLen = int(slashList[1])
+    dotList = slashList[0].split(".")
+    ipMin = 0
+    ipMax = 0
+    if prefixLen == 0:
+        #Note: parenthesis here is essential.
+        ipMax = right3  #(255 << 24) + (255 << 16) + (255 << 8) + 255
+        return (0, ipMax)
+    elif prefixLen < 9: # [1-8]
+        ipMin = int(dotList[0]) & binBit[prefixLen]
+        ipMax = ipMin | maxBit[prefixLen]   #equal to: ipMax = ipMin + maxBit[prefixLen]
+        ipMin <<= 24
+        ipMax <<= 24
+        ipMax += right2 #(255 << 16) + (255 << 8) + 255
+        return (ipMin, ipMax)
+    elif prefixLen < 17: # [9-16]
+        prefixLen -= 8
+        ipMin = int(dotList[1]) & binBit[prefixLen]
+        ipMax = ipMin | maxBit[prefixLen]   #equal to: ipMax = ipMin + maxBit[prefixLen]
+        ipMin <<= 16
+        high = (int(dotList[0]) << 24)
+        ipMin += high
+        ipMax <<= 16
+        ipMax += high
+        ipMax += right1 #(255 << 8) + 255
+        return (ipMin, ipMax)
+    elif prefixLen < 25: # [17-24]
+        prefixLen -= 16
+        ipMin = int(dotList[2]) & binBit[prefixLen]
+        ipMax = ipMin | maxBit[prefixLen]   #equal to: ipMax = ipMin + maxBit[prefixLen]
+        ipMin <<= 8
+        high = (int(dotList[0]) << 24) + (int(dotList[1]) << 16)
+        ipMin += high
+        ipMax <<= 8
+        ipMax += high
+        ipMax += right0 #255
+        return (ipMin, ipMax)
+    elif prefixLen < 33: # [25-32]
+        prefixLen -= 24
+        ipMin = int(dotList[3]) & binBit[prefixLen]
+        ipMax = ipMin | maxBit[prefixLen]   #equal to: ipMax = ipMin + maxBit[prefixLen]
+        high = (int(dotList[0]) << 24) + (int(dotList[1]) << 16) + (int(dotList[2]) << 8)
+        ipMin += high
+        ipMax += high
+        return (ipMin, ipMax)
+
+def initIPv4Dict(ipv4Dict):
+    '''
+    Here we just initialize IP Prefixes info by manual.
     When Left-Right protocol is standardized, this should be initialized automatically with the authoratitive resource-holding data.
     '''
     #IANA
     '''
-    ASN:       0-4294967295
+    IPv4:      0.0.0.0/0
+    ->
+    0-4294967295
     '''
-    ianaMin = 0
-    ianaMax = 4294967295
-    asDict["iana"] = [(ianaMin, ianaMax)]
+    ianaMin, ianaMax = ipv4ToRange("0.0.0.0/0")
+    ipv4Dict["iana"] = [(ianaMin, ianaMax)]
 
     #APNIC
     '''
-    ASN:       64497-64510,65537-65550
+    IPv4:      192.0.2.128/25,198.51.100.128/25,203.0.113.128/25
+    ->
+
     '''
-    apnic1Min = 64497
-    apnic1Max = 64510
-    apnic2Min = 65537
-    apnic2Max = 65550
-    asDict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max)]
+    apnic1Min, apnic1Max = ipv4ToRange("192.0.2.128/25")
+    apnic2Min, apnic2Max = ipv4ToRange("198.51.100.128/25")
+    apnic3Min, apnic3Max = ipv4ToRange("203.0.113.128/25")
+    ipv4Dict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max), (apnic3Min, apnic3Max)]
 
 def checkASN(handle, fileName, asDict):
     '''
@@ -158,10 +215,11 @@ def checkASN(handle, fileName, asDict):
 
 def main():
     #Initialize
-    asDict = {}
-    initASDict(asDict)
-    #showStrListTuple(asDict)
+    ipv4Dict = {}
+    initIPv4Dict(ipv4Dict)
+    showStrListTuple(ipv4Dict)
 
+    '''
     #Get input
     #    0         1    2      3
     #./preCheckASN.py -i apnic abc.csv
@@ -176,6 +234,7 @@ def main():
     #print "handle: {0}, fileName: {1}".format(handle, fileName)
     result = checkASN(handle, fileName, asDict)
     exit(result)
+    '''
 
 if __name__ == "__main__":
     main()

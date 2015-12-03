@@ -6,10 +6,6 @@
 
 import sys
 
-base = 256
-square = base * base
-cube = square * base
-
 def showStrListTuple(aDict):
     '''
     Each element is like:
