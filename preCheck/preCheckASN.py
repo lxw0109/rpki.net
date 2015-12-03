@@ -33,7 +33,7 @@ def getHandle():
     '''
     for line in readFile("/etc/rpki.conf"):
         line = line.strip()
-        if line.startwith("handle"):
+        if line.startswith("handle"):
             lineList = line.split()
             return lineList[2]
     return ""
@@ -100,7 +100,7 @@ def checkASN(handle, fileName, asDict):
             else:
                 unAuthAS = "{0}-{1}".format(asMin, asMax)
 
-            print "Unauthorized Resources Found:\n  {0} [line:{1}] \"{2}\" \n  AS{3} does not belong to {4}".format(fileName, lineno, line.strip(), unAuthAS, handle)
+            print "Unauthorized Resources Found:\n  {0} [line:{1}] \"{2}\" \n  AS: {3} does not belong to {4}".format(fileName, lineno, line.strip(), unAuthAS, handle)
             return 1
         if lineList[0] in childASDict:
             childASDict[lineList[0]].append((asMin, asMax))
@@ -176,4 +176,4 @@ def main():
 if __name__ == "__main__":
     main()
 else:
-    print "imported as an module"
+    print "preCHeckASN.py: imported as an module"
