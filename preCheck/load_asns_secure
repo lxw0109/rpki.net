@@ -33,5 +33,5 @@ then
     #echo "OK. command: $command"
     #$command    #OK
 else
-    echo -e "\nPlease modify \"$3\" file, and run \"load_asns_secure\" again."
+    echo -e "\nPlease modify \"$3\", and run \"load_asns_secure\" again."
 fi
