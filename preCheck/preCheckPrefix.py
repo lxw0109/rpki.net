@@ -161,7 +161,7 @@ def checkPrefix(handle, fileName, ipv4Dict):
             #print "Error: {0}-{1} does not belong to {2}.".format(ipMin, ipMax, handle)
             #return 1    #illegal
             unAuthIP = lineList[1]
-            print "Unauthorized Resources Found:\n  {0} [line:{1}] \"{2}\" \n  IP Prefix: {3} does not belong to {4}".format(fileName, lineno, line.strip(), unAuthIP, handle)
+            print "Unauthorized Resources Detected:\n  {0} [line:{1}] \"{2}\" \n  IP Prefix: {3} does not belong to {4}".format(fileName, lineno, line.strip(), unAuthIP, handle)
             return 1
         if lineList[0] in childIPDict:
             childIPDict[lineList[0]].append((lineList[1], ipMin, ipMax))
@@ -190,7 +190,7 @@ def checkPrefix(handle, fileName, ipv4Dict):
                         else:
                             reAllocIP = "{0} && {1}".format(ipStr, ipStr1)
                             overlapFlag = True
-                            break   #Re-Allocation Found
+                            break   #Re-Allocation Detected
                 if overlapFlag:
                     break
             if overlapFlag:
@@ -198,8 +198,8 @@ def checkPrefix(handle, fileName, ipv4Dict):
         if overlapFlag:
             break
 
-    if overlapFlag:     #Re-Allocation Found
-        print "Resources Re-Allocation Found:\n  {0} \"{1}\" \n  IP prefix: \"{1}\" overlaps.".format(fileName, reAllocIP)
+    if overlapFlag:     #Re-Allocation Detected
+        print "Resources Re-Allocation Detected:\n  {0} \"{1}\" \n  IP prefix: \"{1}\" overlaps.".format(fileName, reAllocIP)
         return 1
 
 def main():

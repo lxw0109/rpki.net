@@ -29,9 +29,9 @@ fi
 
 if [ $? -eq 0 ]
 then
-    command="rpkic $1 $2 load_asns $3abc"
+    command="rpkic $1 $2 load_asns $3"
     #echo "OK. command: $command"
-    #$command    #OK
+    $command    #OK
 else
-    echo -e "\nPlease modify \"$3\", and run \"load_asns_secure\" again."
+    echo -e "Please modify \"$3\", and run \"load_asns_secure\" again."
 fi
