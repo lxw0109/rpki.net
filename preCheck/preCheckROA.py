@@ -1,8 +1,8 @@
 #!/usr/bin/python2.7
 #coding: utf-8
-# FileName: preCheckPrefix.py
+# FileName: preCheckROA.py
 # Author: lxw
-# Date: 2015-11-30
+# Date: 2016-02-25
 
 import sys
 
@@ -125,27 +125,22 @@ def initIPv4Dict(ipv4Dict):
 
 def checkPrefix(handle, fileName, ipv4Dict):
     '''
-    preCheckPrefix.py -i apnic abc.csv
+    preCheckROA.py -i apnic abc.csv
     handle = apnic
     fileName = abc.csv
     The format of "fileName" file is like:
-    cnnic   192.0.2.128/26
-    cnnic   198.51.100.128/26
-    cnnic   203.0.113.128/26
-    jpnic   203.0.113.128/26
-    twnic   192.0.2.192/26
-    twnic   192.0.3.128/26
+    192.0.2.128/26  64497   25
+    198.51.100.128/26  64498   25
     '''
     lineno = 0
-    childIPDict = {}
     for line in readFile(fileName):
         lineno += 1
         lineList = line.split()
-        #only care about lineList[1].
-        if "/" in lineList[1]:  #range
-            slashList = lineList[1].split("/")
+        #only care about lineList[0].
+        if "/" in lineList[0]:  #range
+            slashList = lineList[0].split("/")
         else:
-            slashList = [lineList[1], "32"]
+            slashList = [lineList[0], "32"]
 
         prefixLen = int(slashList[1])
         ipMin, ipMax = ipv4ToRange(slashList[0])
@@ -160,47 +155,9 @@ def checkPrefix(handle, fileName, ipv4Dict):
         if not flag:
             #print "Error: {0}-{1} does not belong to {2}.".format(ipMin, ipMax, handle)
             #return 1    #illegal
-            unAuthIP = lineList[1]
-            print "Unauthorized Resources Detected:\n  In {0} [line:{1}], \"{2}\" ->\n  IP Prefix: {3} does not belong to {4}.".format(fileName, lineno, line.strip(), unAuthIP, handle)
+            unAuthIP = lineList[0]
+            print "Unauthorized Resources Detected:\n  In {0} [line:{1}], \"{2}\" ->\n  IP Prefix: {3} does not belong to {4}.\n  NOTE: This may invalidate legitimate \".roa\" files.".format(fileName, lineno, line.strip(), unAuthIP, handle)
             return 1
-        if lineList[0] in childIPDict:
-            childIPDict[lineList[0]].append((lineList[1], ipMin, ipMax))
-        else:
-            childIPDict[lineList[0]] = [(lineList[1], ipMin, ipMax)]
-
-    #Out of "for" scope.
-    #Resource Re-Allocation check(资源的重复分配)
-    '''
-    csv file:
-
-    childIPDict:
-    jpnic   [(203.0.113.128/26, 3405803904, 3405803904)]
-    twnic   [(192.0.2.192/26, 3221226176, 3221226176)]
-    cnnic   [(192.0.2.128/26, 3221226112, 3221226112), (198.51.100.128/26, 3325256832, 3325256832), (203.0.113.128/26, 3405803904, 3405803904)]
-    '''
-    #showStrListTuple(childIPDict)
-    overlapFlag = False
-    for key in childIPDict.keys():
-        for ipStr, ipMin, ipMax in childIPDict[key]:
-            for key1 in childIPDict.keys():
-                if key1 != key:
-                    for ipStr1, ipMin1, ipMax1 in childIPDict[key1]:
-                        if ipMin > ipMax1 or ipMax < ipMin1:
-                            continue
-                        else:
-                            reAllocIP = "{0} && {1}".format(ipStr, ipStr1)
-                            overlapFlag = True
-                            break   #Re-Allocation Detected
-                if overlapFlag:
-                    break
-            if overlapFlag:
-                break
-        if overlapFlag:
-            break
-
-    if overlapFlag:     #Re-Allocation Detected
-        print "Resources Re-Allocation Detected:\n  In {0}, \"{1}\" ->\n  IP prefix: \"{1}\" overlaps.".format(fileName, reAllocIP)
-        return 1
 
 def main():
     #Initialize
@@ -210,7 +167,7 @@ def main():
 
     #Get input
     #    0         1    2      3
-    #./preCheckASN.py -i apnic abc.csv
+    #./preCheckROA.py -i apnic abc.csv
     length = len(sys.argv)
     #length is bigger than 2.
     if length < 3:

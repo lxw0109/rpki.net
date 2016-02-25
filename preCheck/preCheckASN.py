@@ -9,7 +9,7 @@ import sys
 def showStrListTuple(aDict):
     '''
     Each element is like:
-    str: [(intMin, intMax), ...]
+    str: [(intMin1, intMax1), (intMin2, intMax2)...]
     '''
     for key in aDict.iterkeys():
         print key, "\t",
@@ -55,10 +55,10 @@ def initASDict(asDict):
     '''
     ASN:       64497-64510,65537-65550
     '''
-    apnic1Min = 9801
-    apnic1Max = 9818
-    apnic2Min = 132177
-    apnic2Max = 132190
+    apnic1Min = 64497
+    apnic1Max = 64510
+    apnic2Min = 65537
+    apnic2Max = 65550
     asDict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max)]
 
 def checkASN(handle, fileName, asDict):
@@ -101,7 +101,7 @@ def checkASN(handle, fileName, asDict):
                 unAuthAS = "{0}-{1}".format(asMin, asMax)
 
             #print "Unauthorized Resources Detected: {0}[line:{1}] \"{2}\" \n  AS {3} does not belong to {4}".format(fileName, lineno, line.strip(), unAuthAS, handle)
-            print "Unauthorized Resources Detected: {0} \"{1}\" \n  AS {2} does not belong to {3}".format(fileName, line.strip(), unAuthAS, handle)
+            print "Unauthorized Resources Detected: \n  In {0}, \"{1}\" ->\n  AS {2} does not belong to {3}.".format(fileName, line.strip(), unAuthAS, handle)
             return 1
         if lineList[0] in childASDict:
             childASDict[lineList[0]].append((asMin, asMax))
@@ -149,7 +149,7 @@ def checkASN(handle, fileName, asDict):
             reAllocAS = str(asOverlapMin)
         else:
             reAllocAS = "{0}-{1}".format(asOverlapMin, asOverlapMax)
-        print "Resources Re-Allocation Detected: {0} \"{1}\" \n  AS {1} is allocated more than once.".format(fileName, reAllocAS)
+        print "Resources Re-Allocation Detected: \n  In {0}, \"{1}\" ->\n  AS {1} is allocated more than once.".format(fileName, reAllocAS)
         return 1
 
 
