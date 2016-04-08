@@ -47,19 +47,19 @@ def initASDict(asDict):
     '''
     ASN:       0-4294967295
     '''
-    ianaMin = 0
-    ianaMax = 4294967295
-    asDict["iana"] = [(ianaMin, ianaMax)]
+    IANAMin = 0
+    IANAMax = 4294967295
+    asDict["IANA"] = [(IANAMin, IANAMax)]
 
     #APNIC
     '''
     ASN:       64497-64510,65537-65550
     '''
-    apnic1Min = 64497
-    apnic1Max = 64510
-    apnic2Min = 65537
-    apnic2Max = 65550
-    asDict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max)]
+    APNIC1Min = 64497
+    APNIC1Max = 64510
+    APNIC2Min = 65537
+    APNIC2Max = 65550
+    asDict["APNIC"] = [(APNIC1Min, APNIC1Max), (APNIC2Min, APNIC2Max)]
 
 def checkASN(handle, fileName, asDict):
     '''
@@ -101,7 +101,7 @@ def checkASN(handle, fileName, asDict):
                 unAuthAS = "{0}-{1}".format(asMin, asMax)
 
             #print "Unauthorized Resources Detected: {0}[line:{1}] \"{2}\" \n  AS {3} does not belong to {4}".format(fileName, lineno, line.strip(), unAuthAS, handle)
-            print "Unauthorized Resources Detected: \n  In {0}, \"{1}\" ->\n  AS {2} does not belong to {3}.".format(fileName, line.strip(), unAuthAS, handle)
+            print "[Resource Assignment Error]Unauthorized Resources Detected: \n  In {0}, \"{1}\" ->\n  AS {2} does not belong to {3}.".format(fileName, line.strip(), unAuthAS, handle)
             return 1
         if lineList[0] in childASDict:
             childASDict[lineList[0]].append((asMin, asMax))
@@ -149,7 +149,7 @@ def checkASN(handle, fileName, asDict):
             reAllocAS = str(asOverlapMin)
         else:
             reAllocAS = "{0}-{1}".format(asOverlapMin, asOverlapMax)
-        print "Resources Re-Allocation Detected: \n  In {0}, \"{1}\" ->\n  AS {1} is allocated more than once.".format(fileName, reAllocAS)
+        print "[Resource Assignment Error]Duplicate Resources Detected: \n  In {0}, \"{1}\" ->\n  AS {1} is allocated more than once.".format(fileName, reAllocAS)
         return 1
 
 

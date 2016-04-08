@@ -111,22 +111,22 @@ def initIPv4Dict(ipv4Dict):
     ->
     0-4294967295
     '''
-    ianaMin, ianaMax = ipv4ToRange("0.0.0.0/0")
-    ipv4Dict["iana"] = [(ianaMin, ianaMax)]
+    IANAMin, IANAMax = ipv4ToRange("0.0.0.0/0")
+    ipv4Dict["IANA"] = [(IANAMin, IANAMax)]
 
     #APNIC
     '''
     IPv4:      192.0.2.128/25,198.51.100.128/25,203.0.113.128/25
     '''
-    apnic1Min, apnic1Max = ipv4ToRange("192.0.2.128/25")
-    apnic2Min, apnic2Max = ipv4ToRange("198.51.100.128/25")
-    apnic3Min, apnic3Max = ipv4ToRange("203.0.113.128/25")
-    ipv4Dict["apnic"] = [(apnic1Min, apnic1Max), (apnic2Min, apnic2Max), (apnic3Min, apnic3Max)]
+    APNIC1Min, APNIC1Max = ipv4ToRange("192.0.2.128/25")
+    APNIC2Min, APNIC2Max = ipv4ToRange("198.51.100.128/25")
+    APNIC3Min, APNIC3Max = ipv4ToRange("203.0.113.128/25")
+    ipv4Dict["APNIC"] = [(APNIC1Min, APNIC1Max), (APNIC2Min, APNIC2Max), (APNIC3Min, APNIC3Max)]
 
 def checkPrefix(handle, fileName, ipv4Dict):
     '''
-    preCheckPrefix.py -i apnic abc.csv
-    handle = apnic
+    preCheckPrefix.py -i APNIC abc.csv
+    handle = APNIC
     fileName = abc.csv
     The format of "fileName" file is like:
     cnnic   192.0.2.128/26
@@ -161,7 +161,7 @@ def checkPrefix(handle, fileName, ipv4Dict):
             #print "Error: {0}-{1} does not belong to {2}.".format(ipMin, ipMax, handle)
             #return 1    #illegal
             unAuthIP = lineList[1]
-            print "Unauthorized Resources Detected:\n  In {0} [line:{1}], \"{2}\" ->\n  IP Prefix: {3} does not belong to {4}.".format(fileName, lineno, line.strip(), unAuthIP, handle)
+            print "[Resource Assignment Error]Unauthorized Resources Detected:\n  In {0} [line:{1}], \"{2}\" ->\n  IP Prefix {3} does not belong to {4}.".format(fileName, lineno, line.strip(), unAuthIP, handle)
             return 1
         if lineList[0] in childIPDict:
             childIPDict[lineList[0]].append((lineList[1], ipMin, ipMax))
@@ -199,7 +199,7 @@ def checkPrefix(handle, fileName, ipv4Dict):
             break
 
     if overlapFlag:     #Re-Allocation Detected
-        print "Resources Re-Allocation Detected:\n  In {0}, \"{1}\" ->\n  IP prefix: \"{1}\" overlaps.".format(fileName, reAllocIP)
+        print "[Resource Assignment Error]Duplicate Resources Detected:\n  In {0}, \"{1}\" ->\n  IP prefix \"{1}\" overlaps.".format(fileName, reAllocIP)
         return 1
 
 def main():
@@ -210,7 +210,7 @@ def main():
 
     #Get input
     #    0         1    2      3
-    #./preCheckASN.py -i apnic abc.csv
+    #./preCheckASN.py -i APNIC abc.csv
     length = len(sys.argv)
     #length is bigger than 2.
     if length < 3:
