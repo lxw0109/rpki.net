@@ -7,7 +7,7 @@
 
 def main():
     #f1 = open("result201604161334")
-    f1 = open("./uniq")
+    f1 = open("./resultUniq")
     f2 = open("singlePrefix", "w")
     f3 = open("multiplePrefix", "w")
     while 1:
