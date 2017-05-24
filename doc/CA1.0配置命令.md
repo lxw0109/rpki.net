@@ -1,16 +1,16 @@
 ## CA1.0安装要求：
-系统：Ubuntu16.04
+系统：Ubuntu16.04  
 RPKI-CA：1.0
 
 ## RPKI-CA 1.0安装步骤：
 ### 1.安装
-1. sudo apt-get update
-2. sudo apt-get dist-upgrade	# 将软件包升级到最新版本
-3. sudo wget -q -O /etc/apt/trusted.gpg.d/rpki.gpg https://download.rpki.net/APTng/apt-gpg-key.gpg
-4. sudo wget -q -O /etc/apt/sources.list.d/rpki.list https://download.rpki.net/APTng/rpki.xenial.list
-5. sudo apt-get update
-6. sudo apt-get install rpki-ca
-执行完这一步之后，rpki相关的守护进程须是启动的状态（通过ps aux|grep rpki)如果没有rpki守护进程运行说明前面的安装过程没有执行成功，需要重新执行上述步骤。
+1. $ sudo apt-get update
+2. $ sudo apt-get dist-upgrade	# 将软件包升级到最新版本
+3. $ sudo wget -q -O /etc/apt/trusted.gpg.d/rpki.gpg https://download.rpki.net/APTng/apt-gpg-key.gpg
+4. $ sudo wget -q -O /etc/apt/sources.list.d/rpki.list https://download.rpki.net/APTng/rpki.xenial.list
+5. $ sudo apt-get update
+6. $ sudo apt-get install rpki-ca
+执行完这一步之后，rpki相关的守护进程须是启动的状态（通过ps aux|grep rpki)如果没有rpki守护进程运行说明前面的安装过程没有执行成功，需要重新执行上述步骤。  
 例如如下结果：
 ```bash
 $ ps aux|grep rpki
@@ -24,7 +24,7 @@ postgres   605  0.0  1.4 301908 14988 ?        Ss   08:51   0:00 postgres: rpki 
 ```
 
 ### 2.配置
-1. vim /etc/rpki.conf
+1. $ vim /etc/rpki.conf
 将handle字段修改为需要的值（如IANA,APNIC,CNNIC等）
 2. 需要root权限 
 ```bash
@@ -65,8 +65,8 @@ service rsync
 }
 EOF
 ```
-4. 需要root权限 systemctl restart xinetd
-5. sudo systemctl restart rpki-ca
+4. 需要root权限 $ sudo systemctl restart xinetd
+5. $ sudo systemctl restart rpki-ca
 6. $ mkdir rpki_ca_data
 7. $ sudo chown rpki rpki_ca_data/
 8. $ cd rpki_ca_data/
@@ -99,8 +99,7 @@ Parent:      iana
 
 
 ### 3.资源分配
-与0.6版本的操作完全一样（load_asns, load_prefixes, load_roa_requests），这里只以load_asns和load_prefixes为例
-
+与0.6版本的操作完全一样（load_asns, load_prefixes, load_roa_requests），这里只以load_asns和load_prefixes为例  
 1. 
 ```bash
 $ cat IANA2APNICASN.csv 
@@ -123,7 +122,7 @@ Child: apnic
   ASN: 64497-64510,65537-65550
  IPv4: 192.0.2.128/25,198.51.100.128/25,203.0.113.128/25
 ```
-6.
+6. 这一步也需要等待10分钟左右才能看到结果，如果超过20分钟仍然show不到资源说明上述操作没有执行成功，需要重新执行
 ```bash
 $ rpkic -i apnic show_received_resourcesParent:      iana
   notBefore: 2017-05-24T16:11:38Z
