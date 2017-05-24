@@ -99,7 +99,8 @@ Parent:      iana
 
 
 ### 3.资源分配
-与0.6版本的操作完全一样（load_asns, load_prefixes, load_roa_requests），这里只以load_asns和load_prefixes为例  
+与0.6版本的操作完全一样（load_asns, load_prefixes, load_roa_requests），这里只以load_asns和load_prefixes为例
+
 1. 
 ```bash
 $ cat IANA2APNICASN.csv 
