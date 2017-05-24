@@ -1,17 +1,17 @@
-## CA1.0°²×°ÒªÇó£º
-ÏµÍ³£ºUbuntu16.04
-RPKI-CA£º1.0
+## CA1.0å®‰è£…è¦æ±‚ï¼š
+ç³»ç»Ÿï¼šUbuntu16.04
+RPKI-CAï¼š1.0
 
-## RPKI-CA 1.0°²×°²½Öè£º
-### 1.°²×°
+## RPKI-CA 1.0å®‰è£…æ­¥éª¤ï¼š
+### 1.å®‰è£…
 1. sudo apt-get update
-2. sudo apt-get dist-upgrade	# ½«Èí¼þ°üÉý¼¶µ½×îÐÂ°æ±¾
+2. sudo apt-get dist-upgrade	# å°†è½¯ä»¶åŒ…å‡çº§åˆ°æœ€æ–°ç‰ˆæœ¬
 3. sudo wget -q -O /etc/apt/trusted.gpg.d/rpki.gpg https://download.rpki.net/APTng/apt-gpg-key.gpg
 4. sudo wget -q -O /etc/apt/sources.list.d/rpki.list https://download.rpki.net/APTng/rpki.xenial.list
 5. sudo apt-get update
 6. sudo apt-get install rpki-ca
-Ö´ÐÐÍêÕâÒ»²½Ö®ºó£¬rpkiÏà¹ØµÄÊØ»¤½ø³ÌÐëÊÇÆô¶¯µÄ×´Ì¬£¨Í¨¹ýps aux|grep rpki)Èç¹ûÃ»ÓÐrpkiÊØ»¤½ø³ÌÔËÐÐËµÃ÷Ç°ÃæµÄ°²×°¹ý³ÌÃ»ÓÐÖ´ÐÐ³É¹¦£¬ÐèÒªÖØÐÂÖ´ÐÐÉÏÊö²½Öè¡£
-ÀýÈçÈçÏÂ½á¹û£º
+æ‰§è¡Œå®Œè¿™ä¸€æ­¥ä¹‹åŽï¼Œrpkiç›¸å…³çš„å®ˆæŠ¤è¿›ç¨‹é¡»æ˜¯å¯åŠ¨çš„çŠ¶æ€ï¼ˆé€šè¿‡ps aux|grep rpki)å¦‚æžœæ²¡æœ‰rpkiå®ˆæŠ¤è¿›ç¨‹è¿è¡Œè¯´æ˜Žå‰é¢çš„å®‰è£…è¿‡ç¨‹æ²¡æœ‰æ‰§è¡ŒæˆåŠŸï¼Œéœ€è¦é‡æ–°æ‰§è¡Œä¸Šè¿°æ­¥éª¤ã€‚
+ä¾‹å¦‚å¦‚ä¸‹ç»“æžœï¼š
 ```bash
 $ ps aux|grep rpki
 rpki       382  0.0  0.5 303744  5708 ?        Sl   08:50   0:00 (wsgi:rpkigui)    -k start
@@ -23,10 +23,12 @@ rpki       569  0.7  3.6 208784 36872 ?        S    08:51   0:00 /usr/bin/python
 postgres   605  0.0  1.4 301908 14988 ?        Ss   08:51   0:00 postgres: rpki rpki [local] idle
 ```
 
-### 2.ÅäÖÃ
+### 2.é…ç½®
 1. vim /etc/rpki.conf
-½«handle×Ö¶ÎÐÞ¸ÄÎªÐèÒªµÄÖµ£¨ÈçIANA,APNIC,CNNICµÈ£©
-2. ÐèÒªrootÈ¨ÏÞ # cat > /etc/rsyncd.conf << EOF
+å°†handleå­—æ®µä¿®æ”¹ä¸ºéœ€è¦çš„å€¼ï¼ˆå¦‚IANA,APNIC,CNNICç­‰ï¼‰
+2. éœ€è¦rootæƒé™ 
+```bash
+# cat > /etc/rsyncd.conf << EOF
 uid             = nobody
 gid             = rpki
 
@@ -45,7 +47,10 @@ gid             = rpki
     path                = /usr/share/rpki/rrdp-publication
     comment             = MyCA TAL
 EOF
-3. ÐèÒªrootÈ¨ÏÞ # cat > /etc/xinetd.d/rsync << EOF
+```
+3. éœ€è¦rootæƒé™
+```bash
+# cat > /etc/xinetd.d/rsync << EOF
 service rsync
 {
     disable         = no
@@ -59,19 +64,21 @@ service rsync
     log_on_failure  += USERID
 }
 EOF
-4. ÐèÒªrootÈ¨ÏÞ systemctl restart xinetd
+```
+4. éœ€è¦rootæƒé™ systemctl restart xinetd
 5. sudo systemctl restart rpki-ca
 6. $ mkdir rpki_ca_data
 7. $ sudo chown rpki rpki_ca_data/
 8. $ cd rpki_ca_data/
-#### iana½ÚµãÅäÖÃ
+#### ianaèŠ‚ç‚¹é…ç½®
 9. $ rpkic create_identity iana
 10. $ sudo rsync ./iana.identity.xml /usr/share/rpki/publication/                     
 11. $ rpkic -i iana configure_root
 12. $ rpkic -i iana configure_publication_client iana.iana.repository-request.xml
 13. $ rpkic -i iana configure_repository iana.repository-response.xml
 14. $ rpkic -i iana force_publication
-15. ´ËÊ±Í¨¹ýÏÂÃæµÄÃüÁî£¬Ó¦¸ÃÄÜ¹»¿´µ½iana£¨root½Úµã£©³ÖÓÐµÄ×ÊÔ´£¬Èç¹ûshow²»µ½×ÊÔ´¿ÉÒÔµÈ´ý10·ÖÖÓ×óÓÒ£¬Èç¹û³¬¹ý20·ÖÖÓÈÔÈ»show²»µ½×ÊÔ´ËµÃ÷ÉÏÊö²Ù×÷Ã»ÓÐÖ´ÐÐ³É¹¦£¬ÐèÒªÖØÐÂÖ´ÐÐ
+15. æ­¤æ—¶é€šè¿‡ä¸‹é¢çš„å‘½ä»¤ï¼Œåº”è¯¥èƒ½å¤Ÿçœ‹åˆ°ianaï¼ˆrootèŠ‚ç‚¹ï¼‰æŒæœ‰çš„èµ„æºï¼Œå¦‚æžœshowä¸åˆ°èµ„æºå¯ä»¥ç­‰å¾…10åˆ†é’Ÿå·¦å³ï¼Œå¦‚æžœè¶…è¿‡20åˆ†é’Ÿä»ç„¶showä¸åˆ°èµ„æºè¯´æ˜Žä¸Šè¿°æ“ä½œæ²¡æœ‰æ‰§è¡ŒæˆåŠŸï¼Œéœ€è¦é‡æ–°æ‰§è¡Œ
+```bash
 $ rpkic -i iana show_received_resources
 Parent:      iana
   notBefore: 2017-05-24T15:41:39Z
@@ -82,7 +89,8 @@ Parent:      iana
   ASN:       0-4294967295
   IPv4:      0.0.0.0/0
   IPv6:      ::/0
-#### apnic½ÚµãÅäÖÃ(¼°Óëiana½ÚµãµÄ¸¸×Ó¹ØÏµÅäÖÃ)
+```
+#### apnicèŠ‚ç‚¹é…ç½®(åŠä¸ŽianaèŠ‚ç‚¹çš„çˆ¶å­å…³ç³»é…ç½®)
 16. $ rpkic create_identity apnic
 17. $ rpkic -i iana configure_child apnic.identity.xml
 18. $ rpkic -i apnic configure_parent iana.apnic.parent-response.xml
@@ -90,21 +98,29 @@ Parent:      iana
 20. $ rpkic -i apnic configure_repository apnic.repository-response.xml
 
 
-### 3.×ÊÔ´·ÖÅä
-Óë0.6°æ±¾µÄ²Ù×÷ÍêÈ«Ò»Ñù£¨load_asns, load_prefixes, load_roa_requests£©£¬ÕâÀïÖ»ÒÔload_asnsºÍload_prefixesÎªÀý
-1. $ cat IANA2APNICASN.csv 
+### 3.èµ„æºåˆ†é…
+ä¸Ž0.6ç‰ˆæœ¬çš„æ“ä½œå®Œå…¨ä¸€æ ·ï¼ˆload_asns, load_prefixes, load_roa_requestsï¼‰ï¼Œè¿™é‡Œåªä»¥load_asnså’Œload_prefixesä¸ºä¾‹
+1. 
+```bash
+$ cat IANA2APNICASN.csv 
 apnic   64497-64510
 apnic   65537-65550 
-2. $ cat IANA2APNICPREFIX.csv 
+```
+2. 
+```bash
+$ cat IANA2APNICPREFIX.csv 
 apnic   192.0.2.128/25
 apnic   198.51.100.128/25
 apnic   203.0.113.128/25
+```
 3. $ rpkic -i iana load_asns IANA2APNICASN.csv 
 4. $ rpkic -i iana load_prefixes IANA2APNICPREFIX.csv 
 5. $ rpkic -i iana show_child_resources
+```bash
 Child: apnic
   ASN: 64497-64510,65537-65550
  IPv4: 192.0.2.128/25,198.51.100.128/25,203.0.113.128/25
+```
 
 ## Reference:
 [QuickStart a DRLng Certificate Authority on Ubuntu Xenial](https://github.com/dragonresearch/rpki.net/blob/master/doc/quickstart/xenial-ca.md)
