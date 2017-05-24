@@ -116,11 +116,24 @@ apnic   203.0.113.128/25
 ```
 3. $ rpkic -i iana load_asns IANA2APNICASN.csv 
 4. $ rpkic -i iana load_prefixes IANA2APNICPREFIX.csv 
-5. $ rpkic -i iana show_child_resources
+5. 
 ```bash
+$ rpkic -i iana show_child_resources
 Child: apnic
   ASN: 64497-64510,65537-65550
  IPv4: 192.0.2.128/25,198.51.100.128/25,203.0.113.128/25
+```
+6.
+```bash
+$ rpkic -i apnic show_received_resourcesParent:      iana
+  notBefore: 2017-05-24T16:11:38Z
+  notAfter:  2018-05-24T15:51:43Z
+  URI:       rsync://ubuntu/rpki/iana/G3Li2jmdUzyswaTyy4mFDLrvyq8.cer
+  SIA URI:   rsync://ubuntu/rpki/apnic/
+  AIA URI:   rsync://ubuntu/rpki/iana/CWyd0zsFZXp9ngqNC_aA9P5u5fc.cer
+  ASN:       64497-64510,65537-65550
+  IPv4:      192.0.2.128/25,198.51.100.128/25,203.0.113.128/25
+  IPv6:      
 ```
 
 ## Reference:
