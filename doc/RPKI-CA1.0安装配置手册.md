@@ -136,7 +136,8 @@ Child: apnic
 ```
 6. 这一步也需要等待10分钟左右才能看到结果，如果超过20分钟仍然show不到资源说明上述操作没有执行成功，需要重新执行
 ```bash
-$ rpkic -i apnic show_received_resourcesParent:      iana
+$ rpkic -i apnic show_received_resources
+Parent:      iana
   notBefore: 2017-05-24T16:11:38Z
   notAfter:  2018-05-24T15:51:43Z
   URI:       rsync://ubuntu/rpki/iana/G3Li2jmdUzyswaTyy4mFDLrvyq8.cer
