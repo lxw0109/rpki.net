@@ -81,14 +81,15 @@ EOF
 6. $ mkdir rpki_ca_data
 7. $ sudo chown rpki rpki_ca_data/
 8. $ cd rpki_ca_data/
+9. 启动rsyncd：  sudo /etc/init.d/rsync start
 #### iana节点配置
-9. $ rpkic create_identity iana
-10. $ sudo rsync ./iana.identity.xml /usr/share/rpki/publication/                     
-11. $ rpkic -i iana configure_root
-12. $ rpkic -i iana configure_publication_client iana.iana.repository-request.xml
-13. $ rpkic -i iana configure_repository iana.repository-response.xml
-14. $ rpkic -i iana force_publication
-15. 此时通过下面的命令，应该能够看到iana（root节点）持有的资源，如果show不到资源可以等待10分钟左右，如果超过20分钟仍然show不到资源说明上述操作没有执行成功，需要重新执行
+10. $ rpkic create_identity iana
+11. $ sudo rsync ./iana.identity.xml /usr/share/rpki/publication/                     
+12. $ rpkic -i iana configure_root
+13. $ rpkic -i iana configure_publication_client iana.iana.repository-request.xml
+14. $ rpkic -i iana configure_repository iana.repository-response.xml
+15. $ rpkic -i iana force_publication
+16. 此时通过下面的命令，应该能够看到iana（root节点）持有的资源，如果show不到资源可以等待10分钟左右，如果超过20分钟仍然show不到资源说明上述操作没有执行成功，需要重新执行
 ```bash
 $ rpkic -i iana show_received_resources
 Parent:      iana
@@ -102,11 +103,11 @@ Parent:      iana
   IPv6:      ::/0
 ```
 #### apnic节点配置(及与iana节点的父子关系配置)
-16. $ rpkic create_identity apnic
-17. $ rpkic -i iana configure_child apnic.identity.xml
-18. $ rpkic -i apnic configure_parent iana.apnic.parent-response.xml
-19. $ rpkic -i iana configure_publication_client apnic.iana.repository-request.xml
-20. $ rpkic -i apnic configure_repository apnic.repository-response.xml
+17. $ rpkic create_identity apnic
+18. $ rpkic -i iana configure_child apnic.identity.xml
+19. $ rpkic -i apnic configure_parent iana.apnic.parent-response.xml
+20. $ rpkic -i iana configure_publication_client apnic.iana.repository-request.xml
+21. $ rpkic -i apnic configure_repository apnic.repository-response.xml
 
 
 ### 3.资源分配
