@@ -1,8 +1,19 @@
-## CA1.0安装要求：
+**Author**：[Xiaowei Liu](mailto:liuxiaowei@iscas.ac.cn)
+
+## RPKI-CA 1.0安装要求：
 系统：Ubuntu16.04  
 RPKI-CA：1.0
 
 ## RPKI-CA 1.0安装步骤：
+配置成功后的截图如下
+
+![](./success_result.png)  
+
+**说明**：
++ 下面的"1.安装"小节是必须操作的步骤，而且直接按照下面文档中的命令执行即可
++ "2.配置"小节中的"iana节点配置"、"apnic节点配置"应该按照实际的需求进行安装和配置（是否需要运行iana节点，是否需要apnic节点等）
++ "3.资源分配"小节中具体分配的资源也应按照实际的需求进行配置
+
 ### 1.安装
 1. $ sudo apt-get update
 2. $ sudo apt-get dist-upgrade	# 将软件包升级到最新版本
